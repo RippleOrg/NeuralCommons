@@ -13,6 +13,19 @@ export const CONSENT_VAULT_ABI = [
   },
   {
     inputs: [
+      { internalType: 'string', name: 'ipfsCID', type: 'string' },
+      { internalType: 'bytes32', name: 'datasetHash', type: 'bytes32' },
+      { internalType: 'uint256', name: 'sampleCount', type: 'uint256' },
+      { internalType: 'uint256', name: 'featureCount', type: 'uint256' },
+      { internalType: 'bytes32', name: 'flowState', type: 'bytes32' },
+    ],
+    name: 'anchorDataset',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
       { internalType: 'address', name: 'grantee', type: 'address' },
       { internalType: 'uint8[]', name: 'dataTypes', type: 'uint8[]' },
       { internalType: 'bytes32[]', name: 'purposes', type: 'bytes32[]' },
@@ -70,8 +83,59 @@ export const CONSENT_VAULT_ABI = [
     type: 'function',
   },
   {
+    inputs: [{ internalType: 'address', name: 'ownerAddr', type: 'address' }],
+    name: 'getVault',
+    outputs: [
+      { internalType: 'address', name: 'owner', type: 'address' },
+      { internalType: 'string', name: 'encryptedMetadataCID', type: 'string' },
+      { internalType: 'uint256', name: 'createdAt', type: 'uint256' },
+      { internalType: 'uint256', name: 'datasetCount', type: 'uint256' },
+      { internalType: 'uint256', name: 'grantCount', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: 'ownerAddr', type: 'address' }],
+    name: 'getDatasetCount',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: 'ownerAddr', type: 'address' },
+      { internalType: 'uint256', name: 'index', type: 'uint256' },
+    ],
+    name: 'getDatasetAt',
+    outputs: [
+      {
+        components: [
+          { internalType: 'string', name: 'ipfsCID', type: 'string' },
+          { internalType: 'bytes32', name: 'datasetHash', type: 'bytes32' },
+          { internalType: 'uint256', name: 'sampleCount', type: 'uint256' },
+          { internalType: 'uint256', name: 'featureCount', type: 'uint256' },
+          { internalType: 'bytes32', name: 'flowState', type: 'bytes32' },
+          { internalType: 'uint256', name: 'timestamp', type: 'uint256' },
+        ],
+        internalType: 'struct ConsentVault.DatasetAnchor',
+        name: '',
+        type: 'tuple',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
     inputs: [],
     name: 'getMyGrants',
+    outputs: [{ internalType: 'bytes32[]', name: '', type: 'bytes32[]' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: 'grantee', type: 'address' }],
+    name: 'getGrantsByGrantee',
     outputs: [{ internalType: 'bytes32[]', name: '', type: 'bytes32[]' }],
     stateMutability: 'view',
     type: 'function',
@@ -90,6 +154,17 @@ export const CONSENT_VAULT_ABI = [
       { indexed: false, internalType: 'string', name: 'encryptedMetadataCID', type: 'string' },
     ],
     name: 'VaultCreated',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, internalType: 'address', name: 'owner', type: 'address' },
+      { indexed: true, internalType: 'uint256', name: 'datasetIndex', type: 'uint256' },
+      { indexed: false, internalType: 'string', name: 'ipfsCID', type: 'string' },
+      { indexed: false, internalType: 'bytes32', name: 'datasetHash', type: 'bytes32' },
+    ],
+    name: 'DatasetAnchored',
     type: 'event',
   },
   {
@@ -127,6 +202,33 @@ export const CONSENT_VAULT_ABI = [
 
 export const REVOCATION_REGISTRY_ABI = [
   {
+    inputs: [],
+    name: 'getRevocationCount',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'uint256', name: 'index', type: 'uint256' }],
+    name: 'getRevocationAt',
+    outputs: [
+      {
+        components: [
+          { internalType: 'address', name: 'owner', type: 'address' },
+          { internalType: 'bytes32', name: 'grantId', type: 'bytes32' },
+          { internalType: 'uint256', name: 'revokedAt', type: 'uint256' },
+          { internalType: 'string', name: 'reason', type: 'string' },
+          { internalType: 'bytes32', name: 'keyDestructionProof', type: 'bytes32' },
+        ],
+        internalType: 'struct RevocationRegistry.RevocationRecord',
+        name: '',
+        type: 'tuple',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
     inputs: [
       { internalType: 'bytes32', name: 'grantId', type: 'bytes32' },
     ],
@@ -163,6 +265,13 @@ export const REVOCATION_REGISTRY_ABI = [
 ] as const;
 
 export const DATA_DAO_ABI = [
+  {
+    inputs: [],
+    name: 'getProposalCount',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
   {
     inputs: [
       { internalType: 'string', name: 'description', type: 'string' },
@@ -216,6 +325,30 @@ export const DATA_DAO_ABI = [
     type: 'function',
   },
   {
+    inputs: [
+      { internalType: 'uint256', name: 'proposalId', type: 'uint256' },
+      { internalType: 'address', name: '', type: 'address' },
+    ],
+    name: 'hasVoted',
+    outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: '', type: 'address' }],
+    name: 'members',
+    outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: '', type: 'address' }],
+    name: 'contributionScore',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
     anonymous: false,
     inputs: [
       { indexed: true, internalType: 'uint256', name: 'proposalId', type: 'uint256' },
@@ -239,6 +372,13 @@ export const DATA_DAO_ABI = [
 ] as const;
 
 export const BOUNTY_POOL_ABI = [
+  {
+    inputs: [],
+    name: 'getBountyCount',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
   {
     inputs: [
       { internalType: 'string', name: 'description', type: 'string' },

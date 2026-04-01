@@ -8,9 +8,13 @@ import { Federated } from './pages/Federated';
 import { Governance } from './pages/Governance';
 import { Adversarial } from './pages/Adversarial';
 import { Onboarding } from './pages/Onboarding';
+import { Ops } from './pages/Ops';
 import { Toast } from './components/ui/Toast';
+import { useVaultSync } from './hooks/useVaultSync';
 
 export const App: React.FC = () => {
+  useVaultSync();
+
   return (
     <BrowserRouter>
       <AnimatePresence mode="wait">
@@ -27,7 +31,7 @@ export const App: React.FC = () => {
                   <Route path="/federation" element={<Federated />} />
                   <Route path="/governance" element={<Governance />} />
                   <Route path="/adversarial" element={<Adversarial />} />
-                  <Route path="/settings" element={<div style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', padding: '24px' }}>Settings — Coming soon</div>} />
+                  <Route path="/ops" element={<Ops />} />
                   <Route path="*" element={<Navigate to="/dashboard" replace />} />
                 </Routes>
               </Layout>

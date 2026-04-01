@@ -1,5 +1,6 @@
 import { createPublicClient, http } from 'viem';
-import { baseSepolia } from 'viem/chains';
+import { sepolia } from 'viem/chains';
+import { getRuntimeConfig } from '../runtime';
 import {
   CONSENT_VAULT_ABI,
   REVOCATION_REGISTRY_ABI,
@@ -10,13 +11,15 @@ import {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyPublicClient = any;
 
+const runtimeConfig = getRuntimeConfig();
+
 export const CHAIN_CONFIG = {
-  chainId: 84532,
-  name: 'Base Sepolia',
-  rpcUrl: 'https://sepolia.base.org',
-  blockExplorer: 'https://sepolia.basescan.org',
+  chainId: runtimeConfig.chainId,
+  name: runtimeConfig.chainName,
+  rpcUrl: runtimeConfig.rpcUrl,
+  blockExplorer: runtimeConfig.blockExplorerUrl,
   nativeCurrency: {
-    name: 'Ethereum',
+    name: 'Sepolia Ether',
     symbol: 'ETH',
     decimals: 18,
   },
@@ -31,7 +34,7 @@ export const CONTRACT_ADDRESSES = {
 
 export function createDefaultPublicClient(): AnyPublicClient {
   return createPublicClient({
-    chain: baseSepolia,
+    chain: sepolia,
     transport: http(CHAIN_CONFIG.rpcUrl),
   });
 }
