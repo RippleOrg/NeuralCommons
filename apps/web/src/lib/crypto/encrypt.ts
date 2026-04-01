@@ -45,8 +45,15 @@ export async function encryptFeatureVector(
   features: Record<string, number>,
   key: CryptoKey
 ): Promise<EncryptedBlob> {
+  return encryptJsonPayload(features, key);
+}
+
+export async function encryptJsonPayload(
+  payload: unknown,
+  key: CryptoKey
+): Promise<EncryptedBlob> {
   const encoder = new TextEncoder();
-  const json = JSON.stringify(features);
+  const json = JSON.stringify(payload);
   const plaintext = encoder.encode(json);
   const iv = crypto.getRandomValues(new Uint8Array(12));
 
@@ -57,6 +64,20 @@ export async function encryptFeatureVector(
   );
 
   return { ciphertext, iv };
+}
+
+export async function decryptJsonPayload<T>(
+  blob: EncryptedBlob,
+  key: CryptoKey
+): Promise<T> {
+  const plaintext = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv: blob.iv as Uint8Array<ArrayBuffer>, tagLength: 128 },
+    key,
+    blob.ciphertext
+  );
+
+  const decoder = new TextDecoder();
+  return JSON.parse(decoder.decode(plaintext)) as T;
 }
 
 /**

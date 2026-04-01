@@ -44,6 +44,14 @@ export interface ConsentManifest {
   issuedAt: string;
 }
 
+export interface LitKeyEnvelope {
+  ciphertext: string;
+  dataToEncryptHash: string;
+  accessControlConditions: Array<Record<string, unknown>>;
+  chain: string;
+  litNetwork: string;
+}
+
 export interface SignedManifest extends ConsentManifest {
   proof: {
     type: string;
@@ -71,12 +79,20 @@ export interface VaultEntry {
   id: string;
   sessionId: string;
   ipfsCID: string;
+  storageUri: string;
+  storageProvider: 'local' | 'storacha';
   encryptedMetaCID?: string;
   timestamp: number;
   duration: number;
   flowState: string;
   sampleCount: number;
+  featureCount: number;
+  datasetHash: string;
   grantCount: number;
+  manifestId: string;
+  provenanceCID?: string;
+  litEnvelope?: LitKeyEnvelope;
+  coordinationAnchor?: string;
 }
 
 export interface Grant {
@@ -91,6 +107,7 @@ export interface Grant {
   scopedKeyHash: string;
   ipfsCID: string;
   createdAt: number;
+  permissionNetwork: 'local' | 'lit';
 }
 
 export interface RevocationRecord {
@@ -99,4 +116,25 @@ export interface RevocationRecord {
   revokedAt: number;
   reason: string;
   keyDestructionProof: string;
+}
+
+export interface NeuralDatasetBundle {
+  sessionId: string;
+  ownerAddress: string;
+  ownerDID: string;
+  createdAt: number;
+  dominantState: string;
+  sampleCount: number;
+  featureCount: number;
+  datasetHash: string;
+  encryptedPayload: {
+    ciphertext: string;
+    iv: string;
+  };
+  manifest: ConsentManifest;
+  litEnvelope?: LitKeyEnvelope;
+  provenance?: {
+    cid: string;
+    modelVersion: string;
+  };
 }
