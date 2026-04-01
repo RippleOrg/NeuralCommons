@@ -50,7 +50,7 @@
 
 ### Module 3: IPFS Storage
 
-- **`heliaClient.ts`**: Helia-compatible IPFS interface; falls back to HTTP API or deterministic mock CIDs
+- **`heliaClient.ts`**: IPFS HTTP client for encrypted bundle pinning and retrieval; throws when no reachable IPFS API is available
 - **`vaultStore.ts`**: Local CID registry with IPFS pinning workflow
 - **`provenance.ts`**: IPLD-style provenance DAG linking sessions → features → consent → model version
 

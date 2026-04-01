@@ -71,7 +71,7 @@ Under our default parameters (ε=0.1, δ=1e-5), the platform provides:
 
 2. **IPFS persistence**: Without a dedicated pinning service (Pinata, Filecoin), IPFS content may not persist if the local node goes offline.
 
-3. **libp2p in browser**: WebRTC peer discovery has latency and reliability limitations compared to native implementations. The simulated fallback does not provide real decentralized learning.
+3. **Browser coordination limits**: WebRTC and browser-side federation still have latency and reliability limitations compared to native coordination networks. Production deployments should anchor rounds to a chain or dedicated coordination service rather than rely on ephemeral peer discovery alone.
 
 4. **Model accuracy vs. privacy**: At ε=0.1, model accuracy is significantly reduced compared to non-DP baselines. Users should understand this tradeoff.
 
