@@ -5,8 +5,20 @@ import * as path from "path";
 
 dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
-const PRIVATE_KEY = process.env.PRIVATE_KEY ?? "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+const RAW_PRIVATE_KEY = process.env.PRIVATE_KEY?.trim();
+const PRIVATE_KEY = RAW_PRIVATE_KEY
+  ? RAW_PRIVATE_KEY.startsWith("0x")
+    ? RAW_PRIVATE_KEY
+    : `0x${RAW_PRIVATE_KEY}`
+  : undefined;
+const SEPOLIA_RPC_URL =
+  process.env.SEPOLIA_RPC_URL ??
+  process.env.ALCHEMY_SEPOLIA_API ??
+  "https://rpc.sepolia.org";
+const BASE_SEPOLIA_RPC_URL = process.env.BASE_SEPOLIA_RPC_URL ?? "https://sepolia.base.org";
+const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY ?? "";
 const BASESCAN_API_KEY = process.env.BASESCAN_API_KEY ?? "";
+const accounts = PRIVATE_KEY ? [PRIVATE_KEY] : [];
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -26,14 +38,20 @@ const config: HardhatUserConfig = {
       url: "http://127.0.0.1:8545",
       chainId: 31337,
     },
+    sepolia: {
+      url: SEPOLIA_RPC_URL,
+      chainId: 11155111,
+      accounts,
+    },
     baseSepolia: {
-      url: process.env.BASE_SEPOLIA_RPC_URL ?? "https://sepolia.base.org",
+      url: BASE_SEPOLIA_RPC_URL,
       chainId: 84532,
-      accounts: [PRIVATE_KEY],
+      accounts,
     },
   },
   etherscan: {
     apiKey: {
+      sepolia: ETHERSCAN_API_KEY,
       baseSepolia: BASESCAN_API_KEY,
     },
     customChains: [
