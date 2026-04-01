@@ -24,7 +24,6 @@ export const VaultCard: React.FC<VaultCardProps> = ({ entry, onManageConsent }) 
   });
 
   const shortCID = `${entry.ipfsCID.slice(0, 12)}...${entry.ipfsCID.slice(-6)}`;
-  const ipfsGateway = import.meta.env.VITE_IPFS_GATEWAY ?? 'https://ipfs.io/ipfs/';
 
   const stateColors: Record<string, string> = {
     flow: 'cyan',
@@ -83,16 +82,24 @@ export const VaultCard: React.FC<VaultCardProps> = ({ entry, onManageConsent }) 
               IPFS CID
             </span>
             <a
-              href={`${ipfsGateway}${entry.ipfsCID}`}
+              href={entry.storageUri}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1"
               style={{ fontSize: '0.65rem', color: 'var(--neural-cyan)', fontFamily: 'var(--font-mono)' }}
-              aria-label={`View ${entry.ipfsCID} on IPFS`}
+              aria-label={`View ${entry.ipfsCID} in storage`}
             >
               {shortCID}
               <ExternalLink size={10} />
             </a>
+          </div>
+          <div className="flex justify-between">
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
+              Storage
+            </span>
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+              {entry.storageProvider}
+            </span>
           </div>
           <div className="flex justify-between items-center">
             <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>

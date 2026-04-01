@@ -9,20 +9,31 @@ export interface Toast {
   duration?: number;
 }
 
+export interface ActivityEvent {
+  id: string;
+  timestamp: number;
+  title: string;
+  message: string;
+  tone: 'info' | 'success' | 'warning' | 'danger';
+}
+
 interface UIStore {
   activeToasts: Toast[];
+  activityFeed: ActivityEvent[];
   sidebarCollapsed: boolean;
   currentPage: string;
   theme: 'dark';
 
   addToast: (message: string, type?: ToastType, duration?: number) => void;
   removeToast: (id: string) => void;
+  logActivity: (event: Omit<ActivityEvent, 'id' | 'timestamp'>) => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
   setCurrentPage: (page: string) => void;
 }
 
 export const useUIStore = create<UIStore>((set) => ({
   activeToasts: [],
+  activityFeed: [],
   sidebarCollapsed: false,
   currentPage: '/dashboard',
   theme: 'dark',
@@ -45,6 +56,18 @@ export const useUIStore = create<UIStore>((set) => ({
   removeToast: (id) =>
     set((state) => ({
       activeToasts: state.activeToasts.filter((t) => t.id !== id),
+    })),
+
+  logActivity: (event) =>
+    set((state) => ({
+      activityFeed: [
+        {
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          ...event,
+        },
+        ...state.activityFeed,
+      ].slice(0, 50),
     })),
 
   setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
