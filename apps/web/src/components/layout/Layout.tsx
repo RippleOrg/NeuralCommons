@@ -8,32 +8,11 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
-    <div
-      style={{
-        display: 'flex',
-        minHeight: '100vh',
-        background: 'var(--bg-void)',
-      }}
-    >
+    <div className="app-shell">
       <Sidebar />
-      <div
-        style={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          minWidth: 0,
-          overflow: 'hidden',
-        }}
-      >
+      <div className="app-main">
         <Header />
-        <main
-          style={{
-            flex: 1,
-            overflow: 'auto',
-            padding: '24px',
-            background: 'var(--bg-surface)',
-          }}
-        >
+        <main className="app-content">
           {children}
         </main>
       </div>

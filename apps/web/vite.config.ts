@@ -13,6 +13,18 @@ export default defineConfig({
   },
   build: {
     target: 'esnext',
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return;
+          if (id.includes('@tensorflow') || id.includes('recharts') || id.includes('framer-motion')) {
+            return 'analytics-vendor';
+          }
+          if (id.includes('@lit-protocol')) return 'lit-vendor';
+          if (id.includes('helia') || id.includes('libp2p')) return 'storage-vendor';
+        },
+      },
+    },
   },
   optimizeDeps: {
     exclude: ['helia', 'libp2p'],

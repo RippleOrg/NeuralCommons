@@ -1,98 +1,82 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
-import { Bell } from 'lucide-react';
-import { useWallet } from '../../hooks/useWallet';
-import { useEEGStore } from '../../store/eegStore';
 import { Button } from '../ui/Button';
-import { Badge } from '../ui/Badge';
+import { useEEG } from '../../hooks/useEEG';
+import { useUIStore } from '../../store/uiStore';
+import { getRuntimeConfig } from '../../lib/runtime';
+import { WalletButton } from '../wallet/WalletButton';
 
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard',
   '/vault': 'Neural Vault',
   '/federation': 'Federated Learning',
-  '/governance': 'Data DAO',
-  '/adversarial': 'Adversarial Lab',
-  '/settings': 'Settings',
-  '/onboarding': 'Getting Started',
+  '/governance': 'Governance',
+  '/adversarial': 'Security Lab',
+  '/ops': 'Operations',
+  '/onboarding': 'Onboarding',
 };
 
 export const Header: React.FC = () => {
   const location = useLocation();
-  const { displayName, isConnected, connect } = useWallet();
-  const { connected: eegConnected } = useEEGStore();
+  const { connected, connect: connectEEG, connecting, currentSession, startSession, endSession } = useEEG();
+  const uiStore = useUIStore();
+  const config = getRuntimeConfig();
 
   const pageTitle = PAGE_TITLES[location.pathname] ?? 'NeuralCommons';
 
+  const handleConnectEEG = async () => {
+    try {
+      await connectEEG();
+      uiStore.logActivity({
+        title: 'EEG connected',
+        message: 'Muse-compatible Web Bluetooth stream connected.',
+        tone: 'success',
+      });
+    } catch (error) {
+      uiStore.addToast(String(error), 'error');
+    }
+  };
+
+  const toggleSession = () => {
+    if (currentSession) {
+      const ended = endSession();
+      if (ended) {
+        uiStore.logActivity({
+          title: 'Session captured',
+          message: `Recorded ${ended.features.length} feature windows ready for encryption.`,
+          tone: 'success',
+        });
+      }
+      return;
+    }
+
+    startSession();
+    uiStore.logActivity({
+      title: 'Session started',
+      message: 'Live EEG capture is now recording feature windows.',
+      tone: 'info',
+    });
+  };
+
   return (
-    <header
-      style={{
-        height: '64px',
-        background: 'var(--bg-deep)',
-        borderBottom: '1px solid var(--border-subtle)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0 24px',
-        flexShrink: 0,
-      }}
-    >
-      {/* Left: Page title */}
-      <h1
-        style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: '1.125rem',
-          fontWeight: 700,
-          color: 'var(--text-primary)',
-          letterSpacing: '-0.02em',
-        }}
-      >
-        {pageTitle}
-      </h1>
-
-      {/* Right: Status + wallet */}
-      <div className="flex items-center gap-4">
-        {eegConnected && (
-          <Badge variant="green" aria-label="EEG device connected">
-            ● EEG LIVE
-          </Badge>
-        )}
-
-        <button
-          aria-label="Notifications"
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--text-muted)',
-            cursor: 'pointer',
-            padding: '4px',
-          }}
-        >
-          <Bell size={18} />
-        </button>
-
-        {isConnected ? (
-          <div
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.7rem',
-              color: 'var(--neural-cyan)',
-              padding: '4px 10px',
-              border: '1px solid var(--border-active)',
-              borderRadius: 'var(--radius-sm)',
-            }}
-          >
-            {displayName}
-          </div>
+    <header className="app-header">
+      <div className="header-title">{pageTitle}</div>
+      <div className="header-actions">
+        <div className="ncd-pill">NCD v0.1</div>
+        <div className="header-badge">
+          <div className="dot" />
+          {connected ? 'EEG live · 250Hz' : `${config.storageMode === 'storacha' ? 'Storacha' : 'Local'} vault`}
+        </div>
+        {!connected ? (
+          <Button variant="ghost" size="sm" onClick={handleConnectEEG} loading={connecting}>
+            Connect Muse 2
+          </Button>
         ) : (
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={connect}
-            aria-label="Connect wallet"
-          >
-            Connect Wallet
+          <Button variant={currentSession ? 'danger' : 'primary'} size="sm" onClick={toggleSession}>
+            {currentSession ? 'Stop Session' : 'Start Session'}
           </Button>
         )}
+        <WalletButton />
       </div>
     </header>
   );
