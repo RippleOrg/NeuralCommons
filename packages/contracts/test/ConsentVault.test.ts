@@ -2,6 +2,7 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import { ConsentVault, RevocationRegistry } from "../typechain-types";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import { time } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 
 describe("ConsentVault", function () {
   let consentVault: ConsentVault;
@@ -138,6 +139,41 @@ describe("ConsentVault", function () {
     });
   });
 
+  describe("anchorDataset", function () {
+    const DATASET_HASH = ethers.keccak256(ethers.toUtf8Bytes("dataset-hash"));
+    const FLOW_STATE = ethers.keccak256(ethers.toUtf8Bytes("flow"));
+
+    beforeEach(async function () {
+      await consentVault.createVault(EMPTY_CID);
+    });
+
+    it("Should anchor a dataset for an existing vault", async function () {
+      await expect(
+        consentVault.anchorDataset(EMPTY_CID, DATASET_HASH, 1024, 32, FLOW_STATE)
+      )
+        .to.emit(consentVault, "DatasetAnchored")
+        .withArgs(owner.address, 0n, EMPTY_CID, DATASET_HASH);
+
+      expect(await consentVault.getDatasetCount(owner.address)).to.equal(1n);
+
+      const dataset = await consentVault.getDatasetAt(owner.address, 0n);
+      expect(dataset.ipfsCID).to.equal(EMPTY_CID);
+      expect(dataset.datasetHash).to.equal(DATASET_HASH);
+      expect(dataset.sampleCount).to.equal(1024n);
+      expect(dataset.featureCount).to.equal(32n);
+      expect(dataset.flowState).to.equal(FLOW_STATE);
+
+      const vault = await consentVault.getVault(owner.address);
+      expect(vault.datasetCount).to.equal(1n);
+    });
+
+    it("Should not allow anchoring without a vault", async function () {
+      await expect(
+        consentVault.connect(other).anchorDataset(EMPTY_CID, DATASET_HASH, 1024, 32, FLOW_STATE)
+      ).to.be.revertedWith("No vault found");
+    });
+  });
+
   describe("revokeAccess", function () {
     let grantId: string;
 
@@ -266,9 +302,10 @@ describe("ConsentVault", function () {
     });
 
     it("Should allow grantee to record access", async function () {
+      const nextBlockTimestamp = (await time.latest()) + 1;
       await expect(consentVault.connect(grantee).recordAccess(grantId))
         .to.emit(consentVault, "DataAccessed")
-        .withArgs(grantId, grantee.address, await ethers.provider.getBlock("latest").then(b => b!.timestamp + 1));
+        .withArgs(grantId, grantee.address, nextBlockTimestamp);
     });
 
     it("Should not allow non-grantee to record access", async function () {

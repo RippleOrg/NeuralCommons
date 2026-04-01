@@ -33,6 +33,11 @@ describe("DataDAO", function () {
     it("Should have 0 proposals initially", async function () {
       expect(await dataDAO.proposalCount()).to.equal(0n);
     });
+
+    it("Should bootstrap the deployer as a member", async function () {
+      expect(await dataDAO.members(owner.address)).to.be.true;
+      expect(await dataDAO.contributionScore(owner.address)).to.equal(1n);
+    });
   });
 
   describe("Membership", function () {

@@ -2,6 +2,7 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import { RevocationRegistry, ConsentVault } from "../typechain-types";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import { time } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 
 describe("RevocationRegistry", function () {
   let revocationRegistry: RevocationRegistry;
@@ -67,7 +68,7 @@ describe("RevocationRegistry", function () {
       // Create vault and grant first
       const EMPTY_CID = "QmTestCID123";
       const SCOPED_KEY_HASH = ethers.keccak256(ethers.toUtf8Bytes("test-key"));
-      const FUTURE_EXPIRY = Math.floor(Date.now() / 1000) + 86400 * 30;
+      const FUTURE_EXPIRY = (await time.latest()) + 86400 * 30;
 
       await consentVault.createVault(EMPTY_CID);
       const tx = await consentVault.grantAccess(
@@ -103,7 +104,7 @@ describe("RevocationRegistry", function () {
     it("Should emit RevocationPublished event", async function () {
       const EMPTY_CID = "QmTestCID123";
       const SCOPED_KEY_HASH = ethers.keccak256(ethers.toUtf8Bytes("test-key"));
-      const FUTURE_EXPIRY = Math.floor(Date.now() / 1000) + 86400 * 30;
+      const FUTURE_EXPIRY = (await time.latest()) + 86400 * 30;
 
       await consentVault.createVault(EMPTY_CID);
       const tx = await consentVault.grantAccess(
@@ -127,9 +128,10 @@ describe("RevocationRegistry", function () {
       const grantId = event?.args[0];
 
       const proof = ethers.keccak256(ethers.toUtf8Bytes("key-destroyed"));
+      const nextBlockTimestamp = (await time.latest()) + 1;
       await expect(consentVault.revokeAccess(grantId, "user request", proof))
         .to.emit(revocationRegistry, "RevocationPublished")
-        .withArgs(grantId, owner.address, await ethers.provider.getBlock("latest").then(b => b!.timestamp + 2), "user request");
+        .withArgs(grantId, owner.address, nextBlockTimestamp, "user request");
     });
   });
 
@@ -139,7 +141,7 @@ describe("RevocationRegistry", function () {
 
       const EMPTY_CID = "QmTestCID123";
       const SCOPED_KEY_HASH = ethers.keccak256(ethers.toUtf8Bytes("test-key"));
-      const FUTURE_EXPIRY = Math.floor(Date.now() / 1000) + 86400 * 30;
+      const FUTURE_EXPIRY = (await time.latest()) + 86400 * 30;
 
       await consentVault.createVault(EMPTY_CID);
       const tx = await consentVault.grantAccess(
