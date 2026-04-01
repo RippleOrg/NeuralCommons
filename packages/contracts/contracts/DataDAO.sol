@@ -48,7 +48,11 @@ contract DataDAO is Ownable, ReentrancyGuard {
         _;
     }
 
-    constructor() Ownable(msg.sender) {}
+    constructor() Ownable(msg.sender) {
+        members[msg.sender] = true;
+        contributionScore[msg.sender] = 1;
+        emit MemberAdded(msg.sender, 1);
+    }
 
     function addMember(address member, uint256 score) external onlyOwner {
         members[member] = true;

@@ -24,6 +24,15 @@ contract ConsentVault is Ownable, ReentrancyGuard {
         bytes32 scopedKeyHash;
     }
 
+    struct DatasetAnchor {
+        string ipfsCID;
+        bytes32 datasetHash;
+        uint256 sampleCount;
+        uint256 featureCount;
+        bytes32 flowState;
+        uint256 timestamp;
+    }
+
     struct VaultEntry {
         address owner;
         string encryptedMetadataCID;
@@ -34,10 +43,17 @@ contract ConsentVault is Ownable, ReentrancyGuard {
     mapping(address => VaultEntry) public vaults;
     mapping(bytes32 => DataGrant) public grants;
     mapping(address => bytes32[]) public grantsByGrantee;
+    mapping(address => DatasetAnchor[]) private datasetAnchors;
 
     IRevocationRegistry public revocationRegistry;
 
     event VaultCreated(address indexed owner, string encryptedMetadataCID);
+    event DatasetAnchored(
+        address indexed owner,
+        uint256 indexed datasetIndex,
+        string ipfsCID,
+        bytes32 datasetHash
+    );
     event GrantCreated(
         bytes32 indexed grantId,
         address indexed owner,
@@ -67,6 +83,36 @@ contract ConsentVault is Ownable, ReentrancyGuard {
             createdAt: block.timestamp
         });
         emit VaultCreated(msg.sender, encryptedMetadataCID);
+    }
+
+    function anchorDataset(
+        string calldata ipfsCID,
+        bytes32 datasetHash,
+        uint256 sampleCount,
+        uint256 featureCount,
+        bytes32 flowState
+    ) external onlyVaultOwner {
+        require(bytes(ipfsCID).length > 0, "CID required");
+
+        datasetAnchors[msg.sender].push(
+            DatasetAnchor({
+                ipfsCID: ipfsCID,
+                datasetHash: datasetHash,
+                sampleCount: sampleCount,
+                featureCount: featureCount,
+                flowState: flowState,
+                timestamp: block.timestamp
+            })
+        );
+
+        vaults[msg.sender].encryptedMetadataCID = ipfsCID;
+
+        emit DatasetAnchored(
+            msg.sender,
+            datasetAnchors[msg.sender].length - 1,
+            ipfsCID,
+            datasetHash
+        );
     }
 
     function grantAccess(
@@ -156,6 +202,40 @@ contract ConsentVault is Ownable, ReentrancyGuard {
 
     function getGrant(bytes32 grantId) external view returns (DataGrant memory) {
         return grants[grantId];
+    }
+
+    function getVault(address ownerAddr)
+        external
+        view
+        returns (
+            address owner,
+            string memory encryptedMetadataCID,
+            uint256 createdAt,
+            uint256 datasetCount,
+            uint256 grantCount
+        )
+    {
+        VaultEntry storage vault = vaults[ownerAddr];
+        return (
+            vault.owner,
+            vault.encryptedMetadataCID,
+            vault.createdAt,
+            datasetAnchors[ownerAddr].length,
+            vault.grantIds.length
+        );
+    }
+
+    function getDatasetCount(address ownerAddr) external view returns (uint256) {
+        return datasetAnchors[ownerAddr].length;
+    }
+
+    function getDatasetAt(address ownerAddr, uint256 index)
+        external
+        view
+        returns (DatasetAnchor memory)
+    {
+        require(index < datasetAnchors[ownerAddr].length, "Index out of bounds");
+        return datasetAnchors[ownerAddr][index];
     }
 
     function getMyGrants() external view returns (bytes32[] memory) {
