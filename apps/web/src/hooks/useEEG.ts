@@ -1,7 +1,6 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { SimulatedEEGDevice } from '../lib/eeg/SignalSimulator';
 import { computeFFT, computeAllBandPowers } from '../lib/eeg/fft';
-import { classifyFlowState } from '../lib/eeg/flowState';
+import { classifyFlowState, extractFeatures } from '../lib/eeg/flowState';
 import { useEEGStore } from '../store/eegStore';
 import type { EEGSample } from '../types/eeg';
 
@@ -45,7 +44,6 @@ const MUSE_EEG_CHAR_UUID = '273e0003-4c4d-454d-96be-f03bac821358';
 
 export function useEEG() {
   const store = useEEGStore();
-  const deviceRef = useRef<SimulatedEEGDevice | null>(null);
   const bluetoothDeviceRef = useRef<BluetoothDeviceCompat | null>(null);
   const channelBuffers = useRef<Float32Array[]>(
     Array.from({ length: 8 }, () => new Float32Array(BUFFER_SIZE))
@@ -86,9 +84,14 @@ export function useEEG() {
         const fftResult = computeFFT(avgBuffer, SAMPLE_RATE);
         const bandPowers = computeAllBandPowers(fftResult);
         const flowState = classifyFlowState(bandPowers);
+        const feature = extractFeatures(
+          channelBuffers.current.map((buffer) => buffer.slice()),
+          SAMPLE_RATE
+        );
 
         store.setBandPowers(bandPowers);
         store.setFlowState(flowState);
+        store.recordFeature(feature, flowState.state);
 
         // Update raw signal visualization window
         const windowSize = 750; // 3 seconds
@@ -109,19 +112,11 @@ export function useEEG() {
   }, [store]);
 
   const connect = useCallback(async () => {
-    const simulate = import.meta.env.VITE_SIMULATE_EEG === 'true';
-
     store.setConnecting(true);
 
     try {
-      if (simulate || !('bluetooth' in navigator)) {
-        // Use simulated device
-        const sim = new SimulatedEEGDevice();
-        sim.on('data', processEEGSample);
-        sim.start();
-        deviceRef.current = sim;
-        store.setConnected(true, 'SimulatedEEG');
-        return;
+      if (!('bluetooth' in navigator)) {
+        throw new Error('Web Bluetooth is not available in this browser. Use a supported Chromium browser and a Muse-compatible device.');
       }
 
       // Try Web Bluetooth connection to Muse 2
@@ -165,11 +160,6 @@ export function useEEG() {
   }, [store, processEEGSample]);
 
   const disconnect = useCallback(() => {
-    if (deviceRef.current) {
-      deviceRef.current.stop();
-      deviceRef.current = null;
-    }
-
     if (bluetoothDeviceRef.current?.gatt?.connected) {
       bluetoothDeviceRef.current.gatt.disconnect();
       bluetoothDeviceRef.current = null;
@@ -189,6 +179,9 @@ export function useEEG() {
     connecting: store.connecting,
     connect,
     disconnect,
+    startSession: store.startSession,
+    endSession: store.endSession,
+    currentSession: store.currentSession,
     bandPowers: store.bandPowers,
     flowState: store.flowState,
     rawSignal: rawSignalWindow,

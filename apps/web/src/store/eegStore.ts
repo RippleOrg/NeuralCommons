@@ -21,6 +21,7 @@ interface EEGStore {
   startSession: () => void;
   endSession: () => NeuralSession | null;
   appendRawSignal: (sample: EEGSample) => void;
+  recordFeature: (feature: NeuralSession['features'][number], flowState: FlowStateResult['state']) => void;
   setQuality: (quality: number[]) => void;
 }
 
@@ -87,10 +88,33 @@ export const useEEGStore = create<EEGStore>((set, get) => ({
   },
 
   appendRawSignal: (sample) =>
-    set((state) => ({
-      rawSignal: [...state.rawSignal.slice(-750), sample], // keep last 3 seconds at 250Hz
-      quality: sample.quality,
-    })),
+    set((state) => {
+      const currentSession = state.currentSession
+        ? {
+            ...state.currentSession,
+            sampleCount: state.currentSession.sampleCount + sample.channels.reduce((count, channel) => count + channel.length, 0),
+          }
+        : null;
+
+      return {
+        rawSignal: [...state.rawSignal.slice(-750), sample], // keep last 3 seconds at 250Hz
+        quality: sample.quality,
+        currentSession,
+      };
+    }),
+
+  recordFeature: (feature, flowState) =>
+    set((state) => {
+      if (!state.currentSession) return state;
+
+      return {
+        currentSession: {
+          ...state.currentSession,
+          features: [...state.currentSession.features, feature],
+          dominantState: flowState,
+        },
+      };
+    }),
 
   setQuality: (quality) => set({ quality }),
 }));

@@ -1,26 +1,51 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import * as tf from '@tensorflow/tfjs';
-import { createFlowStateModel, trainLocalEpoch, serializeGradients, applyGradients } from '../lib/federated/model';
+import {
+  applyGradients,
+  createFlowStateModel,
+  evaluateModel,
+  serializeGradients,
+  trainLocalEpoch,
+} from '../lib/federated/model';
 import { applyDifferentialPrivacy, computePrivacyBudget } from '../lib/federated/differentialPrivacy';
 import { FederatedAggregator } from '../lib/federated/aggregator';
+import { createLocalCoordinationReceipt, fetchNearCoordinationState } from '../lib/coordination/near';
 import { useFederatedStore } from '../store/federatedStore';
-import type { FeatureVector, FlowStateMode } from '../types/eeg';
+import { useEEGStore } from '../store/eegStore';
+import { useUIStore } from '../store/uiStore';
+import type { FeatureVector, FlowStateMode, NeuralSession } from '../types/eeg';
 import type { DPGradients } from '../types/federated';
 
 const EPSILON = 0.1;
 const DELTA = 1e-5;
 const SENSITIVITY = 1.0;
-const AUTO_AGGREGATE_THRESHOLD = 3;
+const AUTO_AGGREGATE_THRESHOLD = 1;
+
+function getTrainingSet(sessions: NeuralSession[]): { features: FeatureVector[]; labels: FlowStateMode[] } {
+  const features: FeatureVector[] = [];
+  const labels: FlowStateMode[] = [];
+
+  for (const session of sessions) {
+    if (!session.features.length || !session.endTime) continue;
+    for (const feature of session.features) {
+      features.push(feature);
+      labels.push(session.dominantState);
+    }
+  }
+
+  return { features, labels };
+}
 
 export function useFederated() {
   const store = useFederatedStore();
+  const sessions = useEEGStore((state) => state.sessions);
+  const uiStore = useUIStore();
   const modelRef = useRef<tf.Sequential | null>(null);
   const aggregatorRef = useRef<FederatedAggregator | null>(null);
-  const [accuracyHistory, setAccuracyHistory] = useState<{ round: number; local: number; global: number }[]>([]);
+  const [accuracyHistory, setAccuracyHistory] = useState<Array<{ round: number; local: number; global: number }>>([]);
   const pendingGradients = useRef<DPGradients[]>([]);
 
   useEffect(() => {
-    // Initialize model and aggregator
     const model = createFlowStateModel();
     modelRef.current = model;
     store.setModel(model);
@@ -28,39 +53,34 @@ export function useFederated() {
     const aggregator = new FederatedAggregator();
     aggregatorRef.current = aggregator;
 
-    // Handle incoming gradients from peers
-    const cleanup = aggregator.onGradients((dpGradients, contributorId) => {
+    const cleanup = aggregator.onGradients(async (dpGradients, contributorId) => {
       pendingGradients.current.push(dpGradients);
-      store.addContribution(contributorId, dpGradients.datasetSize * 0.1);
+      store.addContribution(contributorId, dpGradients.datasetSize);
+      store.setPeers(Array.from(new Set([...store.peers, contributorId])));
 
-      // Auto-aggregate when enough peers have contributed
-      if (pendingGradients.current.length >= AUTO_AGGREGATE_THRESHOLD) {
-        const toAggregate = [...pendingGradients.current];
+      if (pendingGradients.current.length >= AUTO_AGGREGATE_THRESHOLD && modelRef.current) {
+        const aggregated = aggregator.aggregateFedAvg(pendingGradients.current);
         pendingGradients.current = [];
+        applyGradients(modelRef.current, aggregated);
+        store.incrementRound();
 
-        try {
-          const aggregated = aggregator.aggregateFedAvg(toAggregate);
-          if (modelRef.current) {
-            applyGradients(modelRef.current, aggregated);
-            store.incrementRound();
-          }
-        } catch {
-          // Aggregation failed
+        const trainingSet = getTrainingSet(useEEGStore.getState().sessions);
+        if (trainingSet.features.length > 0) {
+          const globalAccuracy = await evaluateModel(modelRef.current, trainingSet.features, trainingSet.labels);
+          store.updateAccuracy(store.localAccuracy, globalAccuracy);
         }
       }
     });
 
-    // Simulate some peer activity
-    const peerSimInterval = setInterval(() => {
-      const mockPeers = Array.from({ length: Math.floor(Math.random() * 5) + 2 }, (_, i) =>
-        `12D3Koo${Math.random().toString(36).slice(2, 10).toUpperCase()}`
-      );
-      store.setPeers(mockPeers);
-    }, 10000);
+    void (async () => {
+      const nearState = await fetchNearCoordinationState();
+      if (nearState?.latestRound?.participants) {
+        store.setPeers(nearState.latestRound.participants);
+      }
+    })();
 
     return () => {
       cleanup();
-      clearInterval(peerSimInterval);
       if (modelRef.current) {
         modelRef.current.dispose();
         modelRef.current = null;
@@ -68,61 +88,65 @@ export function useFederated() {
     };
   }, [store]);
 
-  const trainLocal = useCallback(
-    async (features: FeatureVector[], labels: FlowStateMode[]) => {
-      if (!modelRef.current) return;
+  const trainLocal = useCallback(async () => {
+    if (!modelRef.current) return null;
 
-      store.setTraining(true);
+    const trainingSet = getTrainingSet(sessions);
+    if (trainingSet.features.length === 0) {
+      throw new Error('No sealed EEG sessions are available for training yet.');
+    }
 
-      try {
-        const result = await trainLocalEpoch(modelRef.current, features, labels);
-        store.updateAccuracy(result.accuracy);
-        store.setLocalLoss(result.loss);
+    store.setTraining(true);
 
-        // Update privacy budget
-        const newBudget = computePrivacyBudget(
-          store.rounds + 1,
-          EPSILON,
-          DELTA
-        );
-        store.updatePrivacyBudget(newBudget);
+    try {
+      const result = await trainLocalEpoch(modelRef.current, trainingSet.features, trainingSet.labels);
+      const globalAccuracy = await evaluateModel(modelRef.current, trainingSet.features, trainingSet.labels);
 
-        // Update accuracy history
-        setAccuracyHistory((prev) => [
-          ...prev.slice(-49),
-          { round: store.rounds + 1, local: result.accuracy, global: store.globalAccuracy },
-        ]);
+      store.updateAccuracy(result.accuracy, globalAccuracy);
+      store.setLocalLoss(result.loss);
+      store.updatePrivacyBudget(computePrivacyBudget(store.rounds + 1, EPSILON, DELTA));
 
-        return result;
-      } finally {
-        store.setTraining(false);
-      }
-    },
-    [store]
-  );
+      setAccuracyHistory((previous) => [
+        ...previous.slice(-49),
+        { round: store.rounds + 1, local: result.accuracy, global: globalAccuracy },
+      ]);
 
-  const broadcastGradients = useCallback(
-    async (datasetSize = 100) => {
-      if (!modelRef.current || !aggregatorRef.current) return;
+      uiStore.logActivity({
+        title: 'Local training complete',
+        message: `Trained on ${trainingSet.features.length} feature vectors with ${(result.accuracy * 100).toFixed(1)}% local accuracy.`,
+        tone: 'info',
+      });
 
-      const gradients = serializeGradients(modelRef.current);
-      gradients.datasetSize = datasetSize;
-      gradients.round = store.rounds;
+      return result;
+    } finally {
+      store.setTraining(false);
+    }
+  }, [sessions, store, uiStore]);
 
-      const dpGradients = applyDifferentialPrivacy(
-        gradients,
-        EPSILON,
-        DELTA,
-        SENSITIVITY
-      );
+  const broadcastGradients = useCallback(async () => {
+    if (!modelRef.current || !aggregatorRef.current) return null;
 
-      await aggregatorRef.current.broadcastGradients(dpGradients, `local-${Date.now()}`);
-      store.incrementRound();
+    const trainingSet = getTrainingSet(sessions);
+    if (trainingSet.features.length === 0) {
+      throw new Error('No recorded sessions are available to broadcast.');
+    }
 
-      return dpGradients;
-    },
-    [store]
-  );
+    const gradients = serializeGradients(modelRef.current);
+    gradients.datasetSize = trainingSet.features.length;
+    gradients.round = store.rounds;
+
+    const dpGradients = applyDifferentialPrivacy(gradients, EPSILON, DELTA, SENSITIVITY);
+    await aggregatorRef.current.broadcastGradients(dpGradients, `local-${Date.now()}`);
+
+    const receipt = await createLocalCoordinationReceipt(store.rounds + 1, crypto.randomUUID().replace(/-/g, ''));
+    uiStore.logActivity({
+      title: 'Round anchored',
+      message: `Broadcast round ${receipt.roundId} anchored at ${receipt.anchor}.`,
+      tone: 'success',
+    });
+
+    return dpGradients;
+  }, [sessions, store, uiStore]);
 
   return {
     model: store.model,

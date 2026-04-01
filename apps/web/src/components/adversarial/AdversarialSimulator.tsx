@@ -38,10 +38,10 @@ export const AdversarialSimulator: React.FC = () => {
           marginBottom: '4px',
         }}
       >
-        Attack Simulator
+        Security Audits
       </h3>
       <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'var(--text-muted)' }}>
-        Simulate adversarial attacks and observe defense responses
+        Run live configuration audits against the current vault, privacy budget, and federation state
       </p>
 
       {ATTACKS.map((attack) => (
@@ -69,10 +69,10 @@ export const AdversarialSimulator: React.FC = () => {
               loading={simulating && currentAttack === attack.type}
               disabled={simulating}
               onClick={() => simulateAttack(attack.type)}
-              aria-label={`Simulate ${attack.label} attack`}
+              aria-label={`Run ${attack.label} audit`}
             >
               <Zap size={10} className="mr-1" />
-              Launch
+              Audit
             </Button>
           </div>
 
@@ -90,7 +90,7 @@ export const AdversarialSimulator: React.FC = () => {
                 color: 'var(--neural-red)',
               }}
             >
-              ⚡ Attack in progress...
+              Inspecting current system posture...
             </motion.div>
           )}
         </Card>

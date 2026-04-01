@@ -30,16 +30,7 @@ export const FederatedDashboard: React.FC = () => {
   } = useFederated();
 
   const handleTrainLocal = async () => {
-    // Generate some mock training data
-    const { extractFeatures } = await import('../../lib/eeg/flowState');
-    const mockFeatures = Array.from({ length: 20 }, () =>
-      extractFeatures([], 250)
-    );
-    const labels = mockFeatures.map(() => {
-      const states = ['flow', 'focus', 'relaxed', 'stressed', 'neutral'] as const;
-      return states[Math.floor(Math.random() * states.length)];
-    });
-    await trainLocal(mockFeatures, labels);
+    await trainLocal();
   };
 
   const epsilonPercent = Math.min(100, (privacyBudget.totalEpsilon / privacyBudget.maxEpsilon) * 100);

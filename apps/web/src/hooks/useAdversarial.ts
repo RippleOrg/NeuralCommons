@@ -1,5 +1,8 @@
 import { useState, useCallback, useRef } from 'react';
 import { useUIStore } from '../store/uiStore';
+import { useFederatedStore } from '../store/federatedStore';
+import { useVaultStore } from '../store/vaultStore';
+import { getProviderStatuses } from '../lib/runtime';
 
 export type AttackType = 'data_poisoning' | 'model_inversion' | 'gradient_leakage';
 
@@ -35,14 +38,14 @@ export function useAdversarial() {
     attacksDetected: 0,
     gradientsRejected: 0,
     privacyBudgetProtected: 0,
-    falsePositiveRate: 0.02,
+    falsePositiveRate: 0.01,
   });
   const [logs, setLogs] = useState<AttackLog[]>([]);
   const logRef = useRef<AttackLog[]>([]);
 
   const addLog = useCallback((level: AttackLog['level'], message: string) => {
-    const log: AttackLog = { timestamp: Date.now(), level, message };
-    logRef.current = [...logRef.current.slice(-100), log];
+    const next = { timestamp: Date.now(), level, message };
+    logRef.current = [...logRef.current, next].slice(-100);
     setLogs([...logRef.current]);
   }, []);
 
@@ -53,35 +56,19 @@ export function useAdversarial() {
       logRef.current = [];
 
       try {
-        addLog('warn', `[ATTACK] Initiating ${attackType.replace(/_/g, ' ')} attack...`);
-        await delay(300);
-
-        let result: AttackSimulationResult;
-
-        switch (attackType) {
-          case 'data_poisoning':
-            result = await simulateDataPoisoning(addLog);
-            break;
-          case 'model_inversion':
-            result = await simulateModelInversion(addLog);
-            break;
-          case 'gradient_leakage':
-            result = await simulateGradientLeakage(addLog);
-            break;
-        }
-
+        const result = await runAudit(attackType, addLog);
         setSimulationResult(result);
-        setMetrics((prev) => ({
-          attacksDetected: prev.attacksDetected + (result.detectedAt > 0 ? 1 : 0),
-          gradientsRejected: prev.gradientsRejected + Math.floor(result.gradientRejectionRate * 100),
-          privacyBudgetProtected: prev.privacyBudgetProtected + result.privacyBudgetProtected,
-          falsePositiveRate: prev.falsePositiveRate,
+        setMetrics((previous) => ({
+          attacksDetected: previous.attacksDetected + 1,
+          gradientsRejected: previous.gradientsRejected + Math.round(result.gradientRejectionRate * 100),
+          privacyBudgetProtected: previous.privacyBudgetProtected + result.privacyBudgetProtected,
+          falsePositiveRate: previous.falsePositiveRate,
         }));
 
         uiStore.addToast(
           result.attackSuccess
-            ? `⚠ Attack partially succeeded: ${attackType}`
-            : `✓ Attack neutralized: ${attackType}`,
+            ? `Security gap found in ${attackType.replace(/_/g, ' ')}`
+            : `Security audit passed for ${attackType.replace(/_/g, ' ')}`,
           result.attackSuccess ? 'warning' : 'success'
         );
 
@@ -104,69 +91,85 @@ export function useAdversarial() {
   };
 }
 
-async function simulateDataPoisoning(addLog: (level: AttackLog['level'], message: string) => void): Promise<AttackSimulationResult> {
-  addLog('error', '[ATTACK] Injecting malicious gradients into federation pool...');
-  await delay(400);
-  addLog('warn', '[DETECT] Anomaly detection triggered: gradient norm 8.4σ above threshold');
-  await delay(300);
-  addLog('info', '[DEFENSE] DP clipping applied: gradient norm bounded to L2=1.0');
+async function runAudit(
+  attackType: AttackType,
+  addLog: (level: AttackLog['level'], message: string) => void
+): Promise<AttackSimulationResult> {
+  const federated = useFederatedStore.getState();
+  const vault = useVaultStore.getState();
+  const providerStatuses = getProviderStatuses();
+  const activeGrants = vault.grants.filter((grant) => !grant.revoked);
+  const rawEegGrants = activeGrants.filter((grant) => grant.dataTypes.includes('raw_eeg'));
+
+  addLog('info', `Running ${attackType.replace(/_/g, ' ')} audit against live configuration...`);
   await delay(200);
-  addLog('info', '[DEFENSE] Federated aggregation using robust FedAvg with outlier rejection');
-  await delay(300);
-  addLog('success', '[BLOCKED] 94.3% of poisoned gradients neutralized by DP noise');
+
+  if (attackType === 'data_poisoning') {
+    const contributions = Array.from(federated.contributions.values());
+    const highestContribution = Math.max(0, ...contributions);
+    const concentration = contributions.length > 0
+      ? highestContribution / contributions.reduce((sum, value) => sum + value, 1)
+      : 0;
+
+    addLog('info', `Observed ${contributions.length} contributors in the current federation ledger.`);
+    addLog(
+      concentration > 0.5 ? 'warn' : 'success',
+      concentration > 0.5
+        ? 'One contributor dominates the round; enable stricter weighting before accepting peer updates.'
+        : 'Contribution weighting is sufficiently distributed for the current round.'
+    );
+
+    return {
+      attackType,
+      attackSuccess: concentration > 0.5,
+      detectedAt: Date.now(),
+      defenseActivated: 'Contribution concentration audit',
+      privacyBudgetProtected: Math.max(0, 1 - federated.privacyBudget.totalEpsilon),
+      gradientRejectionRate: concentration > 0.5 ? 0.35 : 0.9,
+      logs: [],
+    };
+  }
+
+  if (attackType === 'model_inversion') {
+    addLog(
+      rawEegGrants.length > 0 ? 'warn' : 'success',
+      rawEegGrants.length > 0
+        ? `${rawEegGrants.length} active grants include raw EEG access; restrict scopes to feature vectors where possible.`
+        : 'No active grants expose raw EEG payloads.'
+    );
+    addLog(
+      providerStatuses.permissions.configured ? 'success' : 'warn',
+      providerStatuses.permissions.detail
+    );
+
+    return {
+      attackType,
+      attackSuccess: rawEegGrants.length > 0,
+      detectedAt: Date.now(),
+      defenseActivated: 'Scope minimization + Lit access envelopes',
+      privacyBudgetProtected: Math.max(0, 1 - federated.privacyBudget.totalEpsilon),
+      gradientRejectionRate: rawEegGrants.length > 0 ? 0.25 : 0.8,
+      logs: [],
+    };
+  }
+
+  const epsilonSpent = federated.privacyBudget.totalEpsilon;
+  addLog(
+    epsilonSpent > 0.8 ? 'warn' : 'success',
+    `Current cumulative epsilon is ${epsilonSpent.toFixed(3)} out of ${federated.privacyBudget.maxEpsilon.toFixed(1)}.`
+  );
+  addLog(
+    providerStatuses.storage.configured ? 'success' : 'warn',
+    providerStatuses.storage.detail
+  );
 
   return {
-    attackType: 'data_poisoning',
-    attackSuccess: false,
+    attackType,
+    attackSuccess: epsilonSpent > 0.8,
     detectedAt: Date.now(),
-    defenseActivated: 'Differential Privacy + Gradient Clipping',
-    privacyBudgetProtected: 0.08,
-    gradientRejectionRate: 0.943,
-    logs: [],
-  };
-}
-
-async function simulateModelInversion(addLog: (level: AttackLog['level'], message: string) => void): Promise<AttackSimulationResult> {
-  addLog('error', '[ATTACK] Attempting model inversion to reconstruct EEG signals...');
-  await delay(400);
-  addLog('warn', '[DETECT] Suspicious inference pattern detected: 847 queries in 2s');
-  await delay(300);
-  addLog('info', '[DEFENSE] Rate limiting activated: max 10 queries/second per address');
-  await delay(200);
-  addLog('info', '[DEFENSE] Output perturbation: adding ε-DP noise to model outputs');
-  await delay(300);
-  addLog('success', '[BLOCKED] Signal reconstruction infeasible: SNR < -20dB after DP noise');
-
-  return {
-    attackType: 'model_inversion',
-    attackSuccess: false,
-    detectedAt: Date.now(),
-    defenseActivated: 'Rate Limiting + Output Perturbation',
-    privacyBudgetProtected: 0.12,
-    gradientRejectionRate: 0.0,
-    logs: [],
-  };
-}
-
-async function simulateGradientLeakage(addLog: (level: AttackLog['level'], message: string) => void): Promise<AttackSimulationResult> {
-  addLog('error', '[ATTACK] Deep Leakage from Gradients (DLG) attack initiated...');
-  await delay(400);
-  addLog('warn', '[DETECT] Gradient reconstruction attempt detected');
-  await delay(300);
-  addLog('info', '[DEFENSE] Applying Gaussian noise σ=0.83 to all gradient layers');
-  await delay(200);
-  addLog('info', '[DEFENSE] Gradient compression: top-k sparsification at k=0.1%');
-  await delay(300);
-  addLog('warn', '[PARTIAL] Attacker recovered ~12% signal structure (below 20% threshold)');
-  addLog('success', '[CONTAINED] Privacy guarantee maintained: ε=0.1, δ=1e-5');
-
-  return {
-    attackType: 'gradient_leakage',
-    attackSuccess: false,
-    detectedAt: Date.now(),
-    defenseActivated: 'Gaussian Noise + Gradient Sparsification',
-    privacyBudgetProtected: 0.1,
-    gradientRejectionRate: 0.88,
+    defenseActivated: 'Differential privacy budget tracking',
+    privacyBudgetProtected: Math.max(0, 1 - epsilonSpent),
+    gradientRejectionRate: epsilonSpent > 0.8 ? 0.4 : 0.88,
     logs: [],
   };
 }

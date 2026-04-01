@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useFederated } from '../../hooks/useFederated';
-import { computeGradientStats } from '../../lib/federated/gradients';
+import { serializeGradients } from '../../lib/federated/model';
 
 interface LayerCell {
   layer: string;
@@ -8,26 +8,24 @@ interface LayerCell {
 }
 
 export const GradientVisualizer: React.FC = () => {
-  const { rounds } = useFederated();
+  const { rounds, model } = useFederated();
   const [cells, setCells] = useState<LayerCell[]>([]);
 
   useEffect(() => {
-    // Generate mock gradient magnitude data
-    const mockLayers = [
-      'dense/kernel',
-      'dense/bias',
-      'dense_1/kernel',
-      'dense_1/bias',
-      'dense_2/kernel',
-      'dense_2/bias',
-    ];
+    if (!model) {
+      setCells([]);
+      return;
+    }
 
-    const newCells = mockLayers.map((layer) => ({
+    const serialized = serializeGradients(model as never);
+    const newCells = Object.entries(serialized.weights).map(([layer, values]) => ({
       layer,
-      value: Math.random() * 0.5 + 0.1 * (rounds + 1),
+      value: values.length
+        ? values.reduce((sum, value) => sum + Math.abs(value), 0) / values.length
+        : 0,
     }));
     setCells(newCells);
-  }, [rounds]);
+  }, [model, rounds]);
 
   const maxVal = Math.max(...cells.map((c) => c.value), 0.001);
 

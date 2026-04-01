@@ -6,8 +6,8 @@ const FEDERATED_TOPIC = '/neuralcommons/federated/v1';
 
 /**
  * FederatedAggregator manages gradient collection and FedAvg aggregation.
- * In production, this would subscribe to libp2p GossipSub.
- * This implementation uses a simulated message bus.
+ * It can broadcast directly to an attached pubsub service and otherwise acts as
+ * the in-browser coordination bus for the current runtime.
  */
 export class FederatedAggregator {
   private callbacks: GradientCallback[] = [];
