@@ -1,0 +1,12 @@
+{
+  "network": "sepolia",
+  "chainId": 11155111,
+  "deployer": "0x9f2EdCE3a34e42eaf8f965d4E14aDDd12Cf865f4",
+  "timestamp": "2026-04-01T02:01:48.887Z",
+  "contracts": {
+    "ConsentVault": "0xc634a5CCf4A008B6085a1735024aA443207723A8",
+    "RevocationRegistry": "0x6a2a12F68bb9A121E68765e4631151Cb463c2222",
+    "DataDAO": "0x5f5D961153800c2A4F00876F9D3D79A0723507a3",
+    "BountyPool": "0xAb85d120b59a394770088Eb7c0f8D17F61438451"
+  }
+}
