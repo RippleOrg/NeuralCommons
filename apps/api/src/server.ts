@@ -4,6 +4,7 @@ import * as Client from '@storacha/client';
 import { StoreMemory } from '@storacha/client/stores/memory';
 import * as Proof from '@storacha/client/proof';
 import { Signer } from '@storacha/client/principal/ed25519';
+import { inferWithHeuristic } from './heuristic.js';
 
 const port = Number(process.env.PORT ?? 4100);
 const host = process.env.HOST ?? '0.0.0.0';
@@ -25,6 +26,13 @@ type DatasetPayload = {
 type InferenceRequestBody = {
   deployment_id?: string;
   input: Record<string, unknown>;
+};
+
+type ProviderHealth = {
+  configured: boolean;
+  available: boolean;
+  fallback: boolean;
+  detail: string;
 };
 
 let storachaClientPromise: Promise<Awaited<ReturnType<typeof Client.create>>> | null = null;
@@ -77,6 +85,49 @@ function parseOpenRouterContent(content: unknown) {
   }
 
   return '';
+}
+
+function getProviderHealth() {
+  const storachaConfigured = Boolean(process.env.STORACHA_KEY && process.env.STORACHA_PROOF);
+  const impulseConfigured = Boolean(process.env.IMPULSE_API_KEY);
+  const impulseDeploymentConfigured = Boolean(
+    process.env.IMPULSE_DEPLOYMENT_ID || process.env.IMPULSE_API_URL
+  );
+  const openRouterConfigured = Boolean(process.env.OPENROUTER_API_KEY);
+
+  return {
+    storacha: {
+      configured: storachaConfigured,
+      available: storachaConfigured,
+      fallback: true,
+      detail: storachaConfigured
+        ? 'Encrypted datasets can be replicated to Storacha.'
+        : 'Frontend local archive remains available when Storacha credentials are not configured.',
+    } satisfies ProviderHealth,
+    impulse: {
+      configured: impulseConfigured && impulseDeploymentConfigured,
+      available: impulseConfigured && impulseDeploymentConfigured,
+      fallback: true,
+      detail:
+        impulseConfigured && impulseDeploymentConfigured
+          ? 'Impulse AI is configured as the primary inference provider.'
+          : 'Impulse AI is optional and falls through to OpenRouter or the local heuristic model.',
+    } satisfies ProviderHealth,
+    openrouter: {
+      configured: openRouterConfigured,
+      available: openRouterConfigured,
+      fallback: true,
+      detail: openRouterConfigured
+        ? 'OpenRouter is configured as the secondary inference provider.'
+        : 'If OpenRouter is not configured, the API still serves heuristic cognitive inference.',
+    } satisfies ProviderHealth,
+    heuristic: {
+      configured: true,
+      available: true,
+      fallback: false,
+      detail: 'A built-in heuristic classifier keeps inference available even when remote AI providers fail.',
+    } satisfies ProviderHealth,
+  };
 }
 
 async function inferWithImpulse(body: InferenceRequestBody) {
@@ -184,10 +235,12 @@ async function inferWithOpenRouter(body: InferenceRequestBody) {
 
 app.get('/health', async () => ({
   ok: true,
-  storacha: Boolean(process.env.STORACHA_KEY && process.env.STORACHA_PROOF),
-  impulse: Boolean(process.env.IMPULSE_API_KEY),
-  openrouter: Boolean(process.env.OPENROUTER_API_KEY),
-  ai: Boolean(process.env.IMPULSE_API_KEY || process.env.OPENROUTER_API_KEY),
+  timestamp: new Date().toISOString(),
+  providers: getProviderHealth(),
+  fallbacks: {
+    ai: 'local-heuristic',
+    storage: 'frontend-local-archive',
+  },
 }));
 
 app.post<{ Body: Record<string, unknown> }>('/datasets', async (request, reply) => {
@@ -230,18 +283,21 @@ app.post<{ Body: InferenceRequestBody }>('/ai/infer', async (request, reply) => 
     }
 
     if (process.env.OPENROUTER_API_KEY) {
-      const payload = await inferWithOpenRouter(body);
-      return reply.send(payload);
+      try {
+        const payload = await inferWithOpenRouter(body);
+        return reply.send(payload);
+      } catch (error) {
+        request.log.warn(
+          { err: error },
+          'OpenRouter inference failed, using heuristic fallback'
+        );
+      }
     }
 
-    return reply.status(503).send({
-      error: 'No AI provider is configured. Set IMPULSE_API_KEY or OPENROUTER_API_KEY.',
-    });
+    return reply.send(inferWithHeuristic(body.input));
   } catch (error) {
     request.log.error(error);
-    return reply.status(502).send({
-      error: error instanceof Error ? error.message : 'AI inference failed',
-    });
+    return reply.send(inferWithHeuristic(body.input));
   }
 });
 

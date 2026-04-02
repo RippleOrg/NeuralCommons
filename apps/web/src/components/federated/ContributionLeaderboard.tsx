@@ -1,9 +1,11 @@
 import React from 'react';
-import { useFederated } from '../../hooks/useFederated';
-import { Card } from '../ui/Card';
 
-export const ContributionLeaderboard: React.FC = () => {
-  const { contributions, peers } = useFederated();
+interface ContributionLeaderboardProps {
+  contributions: Map<string, number>;
+  peers: string[];
+}
+
+export const ContributionLeaderboard: React.FC<ContributionLeaderboardProps> = ({ contributions, peers }) => {
 
   const entries = Array.from(contributions.entries())
     .sort((a, b) => b[1] - a[1])

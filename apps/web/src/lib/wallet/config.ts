@@ -8,12 +8,12 @@ import {
   walletConnectWallet,
 } from '@rainbow-me/rainbowkit/wallets';
 import { createConfig, http } from 'wagmi';
-import { mainnet, sepolia } from 'wagmi/chains';
+import { sepolia } from 'wagmi/chains';
 import { getRuntimeConfig } from '../runtime';
 
 const runtimeConfig = getRuntimeConfig();
 
-export const appChains = [sepolia, mainnet] as const;
+export const appChains = [sepolia] as const;
 
 const walletFactories = [
   metaMaskWallet,
@@ -41,7 +41,6 @@ export const wagmiConfig = createConfig({
   connectors,
   transports: {
     [sepolia.id]: http(runtimeConfig.rpcUrl),
-    [mainnet.id]: http(),
   },
 });
 

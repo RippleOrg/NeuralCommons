@@ -1,0 +1,37 @@
+services:
+  - type: web
+    name: neuralcommons-api
+    runtime: node
+    plan: free
+    rootDir: .
+    buildCommand: npm install && npm run build --workspace=@neuralcommons/api
+    startCommand: npm run start --workspace=@neuralcommons/api
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        sync: false
+      - key: PUBLIC_IPFS_GATEWAY
+        value: https://w3s.link/ipfs/
+      - key: STORACHA_KEY
+        sync: false
+      - key: STORACHA_PROOF
+        sync: false
+      - key: IMPULSE_API_KEY
+        sync: false
+      - key: IMPULSE_API_URL
+        value: https://inference.impulselabs.ai
+      - key: IMPULSE_DEPLOYMENT_ID
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENROUTER_MODEL
+        value: google/gemini-2.5-flash-lite-preview-06-17
+      - key: OPENROUTER_HTTP_REFERER
+        sync: false
+      - key: OPENROUTER_APP_NAME
+        value: NeuralCommons

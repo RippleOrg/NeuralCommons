@@ -204,6 +204,28 @@ h6 {
   color: var(--text-muted);
 }
 
+.sb-profile {
+  margin-top: 6px;
+  width: 100%;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sb-profile:hover .sb-wallet,
+.sb-profile:hover .sb-wallet-hint {
+  color: var(--neural-cyan);
+}
+
+.sb-wallet-hint {
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
 .sb-peers span {
   color: var(--neural-cyan);
 }

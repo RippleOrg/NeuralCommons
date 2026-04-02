@@ -94,10 +94,17 @@ export function useConsent() {
         vaultStore.addEntry(entry);
         uiStore.logActivity({
           title: 'Vault sealed',
-          message: `Session ${session.id.slice(0, 8)} stored with ${storage.provider === 'storacha' ? 'Storacha' : 'local'} encrypted retention.`,
-          tone: 'success',
+          message: storage.degraded
+            ? `Session ${session.id.slice(0, 8)} fell back to local encrypted retention because remote archival was unavailable.`
+            : `Session ${session.id.slice(0, 8)} stored with ${storage.provider === 'storacha' ? 'Storacha' : 'local'} encrypted retention.`,
+          tone: storage.degraded ? 'warning' : 'success',
         });
-        uiStore.addToast(`Session sealed into the vault via ${storage.provider}`, 'success');
+        uiStore.addToast(
+          storage.degraded
+            ? `Session sealed locally after Storacha fallback: ${storage.note ?? 'remote archival unavailable'}`
+            : `Session sealed into the vault via ${storage.provider}`,
+          storage.degraded ? 'warning' : 'success'
+        );
 
         // Keep the key in memory for the current browser session only.
         vaultStore.updateEntry(entry.id, {

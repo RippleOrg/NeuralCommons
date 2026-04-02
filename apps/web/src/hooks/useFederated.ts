@@ -37,9 +37,25 @@ function getTrainingSet(sessions: NeuralSession[]): { features: FeatureVector[];
 }
 
 export function useFederated() {
-  const store = useFederatedStore();
   const sessions = useEEGStore((state) => state.sessions);
-  const uiStore = useUIStore();
+  const model = useFederatedStore((state) => state.model);
+  const training = useFederatedStore((state) => state.training);
+  const globalAccuracy = useFederatedStore((state) => state.globalAccuracy);
+  const localAccuracy = useFederatedStore((state) => state.localAccuracy);
+  const localLoss = useFederatedStore((state) => state.localLoss);
+  const contributions = useFederatedStore((state) => state.contributions);
+  const privacyBudget = useFederatedStore((state) => state.privacyBudget);
+  const rounds = useFederatedStore((state) => state.rounds);
+  const peers = useFederatedStore((state) => state.peers);
+  const setModel = useFederatedStore((state) => state.setModel);
+  const addContribution = useFederatedStore((state) => state.addContribution);
+  const setPeers = useFederatedStore((state) => state.setPeers);
+  const incrementRound = useFederatedStore((state) => state.incrementRound);
+  const updateAccuracy = useFederatedStore((state) => state.updateAccuracy);
+  const setLocalLoss = useFederatedStore((state) => state.setLocalLoss);
+  const updatePrivacyBudget = useFederatedStore((state) => state.updatePrivacyBudget);
+  const setTraining = useFederatedStore((state) => state.setTraining);
+  const logActivity = useUIStore((state) => state.logActivity);
   const modelRef = useRef<tf.Sequential | null>(null);
   const aggregatorRef = useRef<FederatedAggregator | null>(null);
   const [accuracyHistory, setAccuracyHistory] = useState<Array<{ round: number; local: number; global: number }>>([]);
@@ -48,26 +64,26 @@ export function useFederated() {
   useEffect(() => {
     const model = createFlowStateModel();
     modelRef.current = model;
-    store.setModel(model);
+    setModel(model);
 
     const aggregator = new FederatedAggregator();
     aggregatorRef.current = aggregator;
 
     const cleanup = aggregator.onGradients(async (dpGradients, contributorId) => {
       pendingGradients.current.push(dpGradients);
-      store.addContribution(contributorId, dpGradients.datasetSize);
-      store.setPeers(Array.from(new Set([...store.peers, contributorId])));
+      addContribution(contributorId, dpGradients.datasetSize);
+      setPeers(Array.from(new Set([...useFederatedStore.getState().peers, contributorId])));
 
       if (pendingGradients.current.length >= AUTO_AGGREGATE_THRESHOLD && modelRef.current) {
         const aggregated = aggregator.aggregateFedAvg(pendingGradients.current);
         pendingGradients.current = [];
         applyGradients(modelRef.current, aggregated);
-        store.incrementRound();
+        incrementRound();
 
         const trainingSet = getTrainingSet(useEEGStore.getState().sessions);
         if (trainingSet.features.length > 0) {
           const globalAccuracy = await evaluateModel(modelRef.current, trainingSet.features, trainingSet.labels);
-          store.updateAccuracy(store.localAccuracy, globalAccuracy);
+          updateAccuracy(useFederatedStore.getState().localAccuracy, globalAccuracy);
         }
       }
     });
@@ -75,7 +91,7 @@ export function useFederated() {
     void (async () => {
       const nearState = await fetchNearCoordinationState();
       if (nearState?.latestRound?.participants) {
-        store.setPeers(nearState.latestRound.participants);
+        setPeers(nearState.latestRound.participants);
       }
     })();
 
@@ -86,7 +102,7 @@ export function useFederated() {
         modelRef.current = null;
       }
     };
-  }, [store]);
+  }, [addContribution, incrementRound, setModel, setPeers, updateAccuracy]);
 
   const trainLocal = useCallback(async () => {
     if (!modelRef.current) return null;
@@ -96,22 +112,22 @@ export function useFederated() {
       throw new Error('No sealed EEG sessions are available for training yet.');
     }
 
-    store.setTraining(true);
+    setTraining(true);
 
     try {
       const result = await trainLocalEpoch(modelRef.current, trainingSet.features, trainingSet.labels);
       const globalAccuracy = await evaluateModel(modelRef.current, trainingSet.features, trainingSet.labels);
 
-      store.updateAccuracy(result.accuracy, globalAccuracy);
-      store.setLocalLoss(result.loss);
-      store.updatePrivacyBudget(computePrivacyBudget(store.rounds + 1, EPSILON, DELTA));
+      updateAccuracy(result.accuracy, globalAccuracy);
+      setLocalLoss(result.loss);
+      updatePrivacyBudget(computePrivacyBudget(rounds + 1, EPSILON, DELTA));
 
       setAccuracyHistory((previous) => [
         ...previous.slice(-49),
-        { round: store.rounds + 1, local: result.accuracy, global: globalAccuracy },
+        { round: rounds + 1, local: result.accuracy, global: globalAccuracy },
       ]);
 
-      uiStore.logActivity({
+      logActivity({
         title: 'Local training complete',
         message: `Trained on ${trainingSet.features.length} feature vectors with ${(result.accuracy * 100).toFixed(1)}% local accuracy.`,
         tone: 'info',
@@ -119,9 +135,9 @@ export function useFederated() {
 
       return result;
     } finally {
-      store.setTraining(false);
+      setTraining(false);
     }
-  }, [sessions, store, uiStore]);
+  }, [logActivity, rounds, sessions, setLocalLoss, setTraining, updateAccuracy, updatePrivacyBudget]);
 
   const broadcastGradients = useCallback(async () => {
     if (!modelRef.current || !aggregatorRef.current) return null;
@@ -133,33 +149,33 @@ export function useFederated() {
 
     const gradients = serializeGradients(modelRef.current);
     gradients.datasetSize = trainingSet.features.length;
-    gradients.round = store.rounds;
+    gradients.round = rounds;
 
     const dpGradients = applyDifferentialPrivacy(gradients, EPSILON, DELTA, SENSITIVITY);
     await aggregatorRef.current.broadcastGradients(dpGradients, `local-${Date.now()}`);
 
-    const receipt = await createLocalCoordinationReceipt(store.rounds + 1, crypto.randomUUID().replace(/-/g, ''));
-    uiStore.logActivity({
+    const receipt = await createLocalCoordinationReceipt(rounds + 1, crypto.randomUUID().replace(/-/g, ''));
+    logActivity({
       title: 'Round anchored',
       message: `Broadcast round ${receipt.roundId} anchored at ${receipt.anchor}.`,
       tone: 'success',
     });
 
     return dpGradients;
-  }, [sessions, store, uiStore]);
+  }, [logActivity, rounds, sessions]);
 
   return {
-    model: store.model,
-    training: store.training,
+    model,
+    training,
     trainLocal,
     broadcastGradients,
-    globalAccuracy: store.globalAccuracy,
-    localAccuracy: store.localAccuracy,
-    localLoss: store.localLoss,
-    contributions: store.contributions,
-    privacyBudget: store.privacyBudget,
-    rounds: store.rounds,
-    peers: store.peers,
+    globalAccuracy,
+    localAccuracy,
+    localLoss,
+    contributions,
+    privacyBudget,
+    rounds,
+    peers,
     accuracyHistory,
   };
 }

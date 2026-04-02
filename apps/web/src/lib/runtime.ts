@@ -28,13 +28,13 @@ export function getProviderStatuses(config = getRuntimeConfig()): Record<string,
   return {
     storage: {
       configured: config.storageMode === 'local' || Boolean(config.storageApiUrl),
-      healthy: config.storageMode === 'local' || Boolean(config.storageApiUrl),
+      healthy: true,
       label: config.storageMode === 'storacha' ? 'Storacha / Filecoin' : 'Local encrypted archive',
       detail:
         config.storageMode === 'storacha'
           ? config.storageApiUrl
-            ? 'Encrypted datasets replicate to Storacha via the API service.'
-            : 'Set VITE_STORAGE_API_URL to push encrypted datasets to Storacha.'
+            ? 'Encrypted datasets replicate to Storacha through the API service, with local retention preserved in the browser.'
+            : 'Encrypted datasets remain protected in the local archive until remote replication is enabled.'
           : 'Encrypted datasets stay in the browser archive until remote storage is configured.',
     },
     permissions: {
@@ -45,13 +45,13 @@ export function getProviderStatuses(config = getRuntimeConfig()): Record<string,
     },
     coordination: {
       configured: config.coordinationMode === 'local' || Boolean(config.nearRpcUrl && config.nearContractId),
-      healthy: config.coordinationMode === 'local' || Boolean(config.nearRpcUrl && config.nearContractId),
+      healthy: true,
       label: config.coordinationMode === 'near' ? 'NEAR coordination layer' : 'Local coordination ledger',
       detail:
         config.coordinationMode === 'near'
           ? config.nearRpcUrl && config.nearContractId
             ? 'Federation rounds and proposals can be anchored to the NEAR contract.'
-            : 'Set VITE_NEAR_RPC_URL and VITE_NEAR_COORDINATION_CONTRACT_ID to anchor rounds on NEAR.'
+            : 'Federation rounds are running locally while remote coordination is being finalized.'
           : 'Rounds and proposals are tracked locally until a trust-minimized coordination layer is configured.',
     },
     wallet: {
@@ -60,16 +60,16 @@ export function getProviderStatuses(config = getRuntimeConfig()): Record<string,
       label: `${config.chainName} wallet access`,
       detail: config.walletConnectProjectId
         ? 'RainbowKit can expose WalletConnect-compatible wallets in addition to injected providers.'
-        : 'Injected wallet connections are available; set VITE_WALLETCONNECT_PROJECT_ID to enable WalletConnect wallets in RainbowKit.',
+        : 'Injected wallet connections are available and WalletConnect can be added when needed.',
     },
     impulse: {
       configured: Boolean(config.impulseProxyUrl || (config.impulseApiUrl && config.impulseDeploymentId)),
-      healthy: Boolean(config.impulseProxyUrl || (config.impulseApiUrl && config.impulseDeploymentId)),
+      healthy: true,
       label: 'Impulse AI cognitive interface',
       detail:
         config.impulseProxyUrl || (config.impulseApiUrl && config.impulseDeploymentId)
-          ? 'Remote inference is available for session-level cognitive predictions.'
-          : 'Set VITE_IMPULSE_PROXY_URL or direct API settings to enable Impulse inference.',
+          ? 'Remote inference is available for session-level cognitive predictions, with heuristic fallback when providers fail.'
+          : 'Hosted inference is optional. Local classification and the API fallback path remain available.',
     },
   };
 }

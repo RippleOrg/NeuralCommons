@@ -17,7 +17,16 @@ const NAV_ITEMS = [
 export const Sidebar: React.FC = () => {
   const { connected } = useEEGStore();
   const { peerCount, entries } = useVaultStore();
-  const { displayName } = useWallet();
+  const { displayName, truncatedAddress, isConnected, connect, openAccount } = useWallet();
+
+  const handleProfileClick = () => {
+    if (isConnected) {
+      openAccount();
+      return;
+    }
+
+    connect();
+  };
 
   return (
     <aside className="sidebar">
@@ -50,7 +59,10 @@ export const Sidebar: React.FC = () => {
           <div className={`status-dot ${connected ? 'active' : 'inactive'}`} />
           <span>{connected ? 'EEG live' : 'EEG offline'}</span>
         </div>
-        <div className="sb-wallet">{displayName ?? 'Connect wallet'}</div>
+        <button className="sb-profile" type="button" onClick={handleProfileClick}>
+          <div className="sb-wallet">{displayName ?? 'Connect wallet'}</div>
+          <div className="sb-wallet-hint">{isConnected ? truncatedAddress ?? 'Manage profile' : 'Open wallet profile'}</div>
+        </button>
         <div className="sb-peers">
           Vault entries: <span>{entries.length}</span> · IPFS peers: <span>{peerCount}</span>
         </div>

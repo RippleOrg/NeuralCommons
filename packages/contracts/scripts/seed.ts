@@ -113,17 +113,42 @@ async function main() {
   }
 
   const proposalCount = await dataDAO.getProposalCount();
-  if (proposalCount === 0n) {
-    console.log("Submitting bootstrap governance proposal...");
-    await (
-      await dataDAO.propose(
-        "Ratify Sepolia bootstrap state and authorize the first production governance window.",
-        storageReference,
-        0
-      )
-    ).wait();
+  const activeProposalTemplates = [
+    {
+      description: "Ratify Sepolia bootstrap state and authorize the first production governance window.",
+      proposalType: 0,
+    },
+    {
+      description: "Approve an expanded federated learning cohort for the next privacy-preserving training round.",
+      proposalType: 2,
+    },
+    {
+      description: "Allocate the next contributor bounty pool to safety-reviewed neural model improvements.",
+      proposalType: 3,
+    },
+  ] as const;
+
+  let activeProposalCount = 0;
+  for (let index = 1n; index <= proposalCount; index++) {
+    const proposal = await dataDAO.getProposal(index);
+    if (!proposal.executed && proposal.deadline > BigInt(Math.floor(Date.now() / 1000))) {
+      activeProposalCount++;
+    }
+  }
+
+  if (activeProposalCount < activeProposalTemplates.length) {
+    console.log(`Submitting ${activeProposalTemplates.length - activeProposalCount} active governance proposal(s)...`);
+    for (const template of activeProposalTemplates.slice(activeProposalCount)) {
+      await (
+        await dataDAO.propose(
+          template.description,
+          storageReference,
+          template.proposalType
+        )
+      ).wait();
+    }
   } else {
-    console.log("Governance proposals already exist, skipping proposal seed.");
+    console.log("Active governance proposals already exist, skipping proposal seed.");
   }
 
   const finalVault = await consentVault.getVault(deployer.address);

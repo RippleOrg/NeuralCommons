@@ -1,9 +1,11 @@
 import React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { useFederated } from '../../hooks/useFederated';
 
-export const ModelAccuracyChart: React.FC = () => {
-  const { accuracyHistory } = useFederated();
+interface ModelAccuracyChartProps {
+  accuracyHistory: Array<{ round: number; local: number; global: number }>;
+}
+
+export const ModelAccuracyChart: React.FC<ModelAccuracyChartProps> = ({ accuracyHistory }) => {
 
   return (
     <ResponsiveContainer width="100%" height={200}>
