@@ -2,10 +2,11 @@ import React from 'react';
 import { FederatedDashboard } from '../components/federated/FederatedDashboard';
 import { ContributionLeaderboard } from '../components/federated/ContributionLeaderboard';
 import { GradientVisualizer } from '../components/federated/GradientVisualizer';
-import { useFederatedStore } from '../store/federatedStore';
+import { useFederated } from '../hooks/useFederated';
 
 export const Federated: React.FC = () => {
-  const privacyBudget = useFederatedStore((state) => state.privacyBudget);
+  const federated = useFederated();
+  const privacyBudget = federated.privacyBudget;
 
   return (
     <div className="page-grid">
@@ -25,16 +26,27 @@ export const Federated: React.FC = () => {
       <section className="two-col federated-layout">
         <div className="column-stack">
           <div className="card card-accent">
-            <FederatedDashboard />
+            <FederatedDashboard
+              training={federated.training}
+              trainLocal={federated.trainLocal}
+              broadcastGradients={federated.broadcastGradients}
+              localAccuracy={federated.localAccuracy}
+              globalAccuracy={federated.globalAccuracy}
+              localLoss={federated.localLoss}
+              privacyBudget={federated.privacyBudget}
+              rounds={federated.rounds}
+              accuracyHistory={federated.accuracyHistory}
+              peers={federated.peers}
+            />
           </div>
           <div className="card">
-            <GradientVisualizer />
+            <GradientVisualizer model={federated.model} rounds={federated.rounds} />
           </div>
         </div>
 
         <div className="column-stack">
           <div className="card">
-            <ContributionLeaderboard />
+            <ContributionLeaderboard contributions={federated.contributions} peers={federated.peers} />
           </div>
           <div className="card">
             <div className="card-header">

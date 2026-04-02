@@ -8,6 +8,13 @@ export interface ProviderStatus {
   detail: string;
 }
 
+export interface RemoteProviderHealth {
+  configured: boolean;
+  available: boolean;
+  fallback: boolean;
+  detail: string;
+}
+
 export interface RuntimeConfig {
   appEnv: string;
   chainId: number;
@@ -38,6 +45,24 @@ export interface ImpulseInference {
   model: string;
   label: string;
   confidence: number;
+  provider: string;
+  rationale?: string;
+  fallback?: boolean;
   raw?: unknown;
   requestedAt: number;
+}
+
+export interface ApiHealthResponse {
+  ok: boolean;
+  timestamp: string;
+  providers: {
+    storacha: RemoteProviderHealth;
+    impulse: RemoteProviderHealth;
+    openrouter: RemoteProviderHealth;
+    heuristic: RemoteProviderHealth;
+  };
+  fallbacks: {
+    ai: string;
+    storage: string;
+  };
 }

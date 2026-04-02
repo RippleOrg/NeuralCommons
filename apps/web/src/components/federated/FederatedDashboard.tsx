@@ -9,28 +9,54 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import { useFederated } from '../../hooks/useFederated';
 import { Button } from '../ui/Button';
 import { ProgressBar } from '../ui/ProgressBar';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
+import { useUIStore } from '../../store/uiStore';
+import type { PrivacyAccountant } from '../../types/federated';
 
-export const FederatedDashboard: React.FC = () => {
-  const {
-    training,
-    trainLocal,
-    broadcastGradients,
-    localAccuracy,
-    globalAccuracy,
-    localLoss,
-    privacyBudget,
-    rounds,
-    accuracyHistory,
-    peers,
-  } = useFederated();
+interface FederatedDashboardProps {
+  training: boolean;
+  trainLocal: () => Promise<unknown>;
+  broadcastGradients: () => Promise<unknown>;
+  localAccuracy: number;
+  globalAccuracy: number;
+  localLoss: number;
+  privacyBudget: PrivacyAccountant;
+  rounds: number;
+  accuracyHistory: Array<{ round: number; local: number; global: number }>;
+  peers: string[];
+}
+
+export const FederatedDashboard: React.FC<FederatedDashboardProps> = ({
+  training,
+  trainLocal,
+  broadcastGradients,
+  localAccuracy,
+  globalAccuracy,
+  localLoss,
+  privacyBudget,
+  rounds,
+  accuracyHistory,
+  peers,
+}) => {
+  const addToast = useUIStore((state) => state.addToast);
 
   const handleTrainLocal = async () => {
-    await trainLocal();
+    try {
+      await trainLocal();
+    } catch (error) {
+      addToast(String(error), 'error');
+    }
+  };
+
+  const handleBroadcast = async () => {
+    try {
+      await broadcastGradients();
+    } catch (error) {
+      addToast(String(error), 'error');
+    }
   };
 
   const epsilonPercent = Math.min(100, (privacyBudget.totalEpsilon / privacyBudget.maxEpsilon) * 100);
@@ -127,12 +153,16 @@ export const FederatedDashboard: React.FC = () => {
         </Button>
         <Button
           variant="secondary"
-          onClick={() => broadcastGradients()}
+          onClick={handleBroadcast}
           disabled={training}
           aria-label="Broadcast gradients to federation"
         >
           Broadcast Gradients
         </Button>
+      </div>
+
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: 'var(--text-muted)' }}>
+        Current loss: {localLoss.toFixed(4)}
       </div>
     </div>
   );

@@ -41,8 +41,8 @@ export const Ops: React.FC = () => {
           <div className="metric-row"><span>Lit network</span><strong>{config.litNetwork}</strong></div>
           <div className="metric-row"><span>Lit chain</span><strong>{config.litChain}</strong></div>
           <div className="metric-row"><span>Coordination mode</span><strong>{config.coordinationMode}</strong></div>
-          <div className="metric-row"><span>NEAR contract</span><strong>{config.nearContractId ?? 'not set'}</strong></div>
-          <div className="metric-row"><span>Impulse deployment</span><strong>{config.impulseDeploymentId ?? 'not set'}</strong></div>
+          <div className="metric-row"><span>NEAR contract</span><strong>{config.nearContractId ?? 'local mode'}</strong></div>
+          <div className="metric-row"><span>Impulse deployment</span><strong>{config.impulseDeploymentId ?? 'auto / fallback'}</strong></div>
         </div>
       </section>
     </div>

@@ -12,6 +12,12 @@ import {
 type AnyPublicClient = any;
 
 const runtimeConfig = getRuntimeConfig();
+const DEFAULT_DEPLOYMENT = {
+  ConsentVault: '0xc634a5CCf4A008B6085a1735024aA443207723A8',
+  RevocationRegistry: '0x6a2a12F68bb9A121E68765e4631151Cb463c2222',
+  DataDAO: '0x5f5D961153800c2A4F00876F9D3D79A0723507a3',
+  BountyPool: '0xAb85d120b59a394770088Eb7c0f8D17F61438451',
+} as const;
 
 export const CHAIN_CONFIG = {
   chainId: runtimeConfig.chainId,
@@ -26,10 +32,10 @@ export const CHAIN_CONFIG = {
 };
 
 export const CONTRACT_ADDRESSES = {
-  ConsentVault: import.meta.env.VITE_CONSENT_VAULT_ADDRESS as `0x${string}` | undefined,
-  RevocationRegistry: import.meta.env.VITE_REVOCATION_REGISTRY_ADDRESS as `0x${string}` | undefined,
-  DataDAO: import.meta.env.VITE_DATA_DAO_ADDRESS as `0x${string}` | undefined,
-  BountyPool: import.meta.env.VITE_BOUNTY_POOL_ADDRESS as `0x${string}` | undefined,
+  ConsentVault: (import.meta.env.VITE_CONSENT_VAULT_ADDRESS ?? DEFAULT_DEPLOYMENT.ConsentVault) as `0x${string}`,
+  RevocationRegistry: (import.meta.env.VITE_REVOCATION_REGISTRY_ADDRESS ?? DEFAULT_DEPLOYMENT.RevocationRegistry) as `0x${string}`,
+  DataDAO: (import.meta.env.VITE_DATA_DAO_ADDRESS ?? DEFAULT_DEPLOYMENT.DataDAO) as `0x${string}`,
+  BountyPool: (import.meta.env.VITE_BOUNTY_POOL_ADDRESS ?? DEFAULT_DEPLOYMENT.BountyPool) as `0x${string}`,
 };
 
 export function createDefaultPublicClient(): AnyPublicClient {

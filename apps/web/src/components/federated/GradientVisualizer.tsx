@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { useFederated } from '../../hooks/useFederated';
 import { serializeGradients } from '../../lib/federated/model';
 
 interface LayerCell {
@@ -7,8 +6,12 @@ interface LayerCell {
   value: number;
 }
 
-export const GradientVisualizer: React.FC = () => {
-  const { rounds, model } = useFederated();
+interface GradientVisualizerProps {
+  rounds: number;
+  model: unknown | null;
+}
+
+export const GradientVisualizer: React.FC<GradientVisualizerProps> = ({ rounds, model }) => {
   const [cells, setCells] = useState<LayerCell[]>([]);
 
   useEffect(() => {

@@ -46,7 +46,11 @@ export const useEEGStore = create<EEGStore>((set, get) => ({
   quality: Array(8).fill(0),
 
   setConnected: (connected, device) =>
-    set({ connected, device: device ?? null, connecting: false }),
+    set({
+      connected,
+      device: connected ? device ?? null : null,
+      connecting: false,
+    }),
 
   setConnecting: (connecting) => set({ connecting }),
 

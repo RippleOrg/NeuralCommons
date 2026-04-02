@@ -1,19 +1,191 @@
 # NeuralCommons
 
-NeuralCommons is a Sepolia-backed cognitive sovereignty workspace for capturing EEG sessions, sealing them into encrypted vault bundles, granting and revoking access onchain, coordinating federated learning, and routing remote cognition inference through an API service with OpenRouter fallback.
+NeuralCommons is a cognitive sovereignty platform for neural data capture, encrypted memory, programmable consent, federated learning, and safe AI coordination. It turns raw EEG sessions into user-owned encrypted vault bundles, anchors provenance and revocation onchain, persists memory to Storacha when available, wraps access with Lit-compatible policies, and keeps cognitive inference online through multi-provider AI fallbacks.
 
-## What is live
+Built for the PL Genesis: Frontier of Collaboration Hackathon 2026.
 
-- Ethereum Sepolia is now the default EVM target across the frontend, contract tooling, and wallet UX.
-- RainbowKit v2 is the wallet entrypoint for all contract-backed actions.
-- `ConsentVault` stores real vault ownership, dataset anchors, grants, and revocations.
-- `DataDAO` is used for live proposal creation and voting.
-- `apps/api` proxies Storacha uploads and AI inference.
-- Impulse inference now falls back to OpenRouter Gemini 2.5 Flash Lite when Impulse is unavailable or misconfigured.
+## Why It Matters
 
-## Sepolia deployment
+Neural data is among the most intimate classes of data people can generate. Today, most neurotech products centralize storage, blur consent boundaries, and give users limited visibility into how signals are reused. NeuralCommons proposes a different default:
 
-Current public testnet deployment:
+- users own their cognitive traces
+- consent is explicit, revocable, and auditable
+- collaboration happens through privacy-preserving federated learning instead of raw data extraction
+- storage and access control are decentralized instead of platform-custodial
+- the product still works under degraded conditions through local-first fallbacks
+
+This makes NeuralCommons both a neurotech product and a coordination system for safe human-AI collaboration.
+
+## Submission Highlights
+
+| Area | What NeuralCommons Ships |
+| --- | --- |
+| Neurotech | Live Muse-compatible EEG ingestion, cognitive-state classification, consented neural data packaging, safety/adversarial testing surfaces |
+| ImpulseAI | Hosted cognitive inference path with graceful fallback to OpenRouter and then to a built-in heuristic classifier |
+| Storacha | Encrypted dataset archival path to Storacha via API, with local encrypted retention fallback when remote storage is unavailable |
+| Lit Protocol | Lit-compatible access envelopes for vault keys and programmable recipient conditions for neural data sharing |
+| Onchain coordination | Sepolia contracts for vault ownership, grant issuance, revocation, governance, and bounty alignment |
+
+## Judging Criteria Alignment
+
+### Technical Execution
+
+- Fastify API with provider-aware health reporting and AI fallback routing
+- React + Vite control plane with lazy-loaded pages, runtime health checks, and an app-level error boundary
+- Solidity contracts for vault creation, grant lifecycle, revocation registry, DAO proposals, and bounty approvals
+- Browser crypto, Lit-ready key wrapping, federated learning, and differential privacy primitives
+- Demo-safe EEG fallback mode when real hardware is unavailable
+
+### Impact / Usefulness
+
+- Gives users real ownership and revocation power over neural data
+- Enables researchers and builders to collaborate without centralizing raw EEG sessions
+- Makes neurotech safer by foregrounding consent, adversarial testing, and cognitive liberty
+- Demonstrates a deployable pattern for privacy-preserving collective intelligence systems
+
+### Completeness / Functionality
+
+- Full frontend control plane
+- Working Fastify API
+- Passing smart-contract test suite
+- Deployed Sepolia contract addresses committed in-repo
+- Deployment configs for Vercel and Render
+- Local-first fallbacks so the product remains operable when external services are absent
+
+### Scalability / Future Potential
+
+- Local-first storage and inference reduce operational brittleness
+- Storacha persistence supports portable agent memory and shared knowledge layers
+- Federated training architecture can scale to more peers without centralizing raw sessions
+- Governance and bounty primitives provide a path toward a researcher/participant network economy
+
+### Innovation / Creativity
+
+- Treats neural data as sovereign, revocable infrastructure instead of a passive analytics feed
+- Connects neurotech, decentralized storage, programmable cryptography, and agentic ML in one product
+- Uses graceful degradation as part of the product design rather than treating offline mode as failure
+
+## Track Alignment
+
+### Neurotech Track
+
+NeuralCommons directly addresses cognition, coordination, and computation:
+
+- Muse-compatible EEG capture produces real signal windows and cognitive-state features
+- vault bundles preserve provenance, consent metadata, and access boundaries
+- safety surfaces include adversarial simulation and revocation controls
+- federated training demonstrates collaborative intelligence without centralizing raw neural data
+- the live capture path is built for Muse-compatible EEG hardware
+
+This is framed around cognitive sovereignty: the user controls retention, sharing, and revocation of their own neural traces.
+
+### ImpulseAI Track
+
+NeuralCommons integrates hosted cognitive inference into the product rather than leaving modeling in a notebook:
+
+- the frontend sends cognitive feature windows to the API
+- the API tries Impulse first
+- if Impulse is unavailable, the API falls back to OpenRouter
+- if hosted providers are unavailable, a built-in heuristic classifier still returns a usable cognitive-state prediction
+- the UI exposes model provenance, confidence, and reasoning
+
+That means the inference workflow is productized, observable, and resilient.
+
+### Storacha Track
+
+NeuralCommons uses Storacha as persistent encrypted agent memory for neural sessions:
+
+- encrypted neural bundles are serialized and uploaded through the API
+- stored bundles can act as durable cross-device memory instead of ephemeral session state
+- local encrypted archival remains active if Storacha credentials or network access are unavailable
+- the architecture supports future shared-memory and decentralized RAG patterns over stored neural artifacts
+
+This aligns especially well with the persistent memory and decentralized knowledge-base challenge directions.
+
+### Lit Protocol Track
+
+NeuralCommons uses Lit-compatible access envelopes to make neural data sharing programmable:
+
+- vault keys can be wrapped with recipient conditions
+- access is modeled as revocable, scoped consent rather than a one-time export
+- the product positions Lit as the programmable trust layer for sensitive neural information
+- this enables privacy-preserving collaboration without giving any single participant raw permanent custody
+
+## Architecture
+
+```text
+Muse EEG
+        |
+        v
+  Browser signal processing
+        |
+        +--> local flow-state classification
+        |
+        +--> encrypted neural vault bundle
+                 |
+                 +--> local encrypted archive
+                 +--> API -> Storacha replication
+                 +--> Lit envelope for scoped access
+                 +--> Sepolia dataset anchor + grant lifecycle
+        |
+        +--> federated learning + differential privacy
+        |
+        +--> API inference router
+                 |
+                 +--> Impulse AI
+                 +--> OpenRouter
+                 +--> local heuristic fallback
+```
+
+## Core Product Flows
+
+### 1. Capture
+
+- Connect a Muse-compatible headset over Web Bluetooth
+- Start a session and record feature windows in-browser
+
+### 2. Seal
+
+- Generate a vault key in the browser
+- Encrypt session payloads with AES-GCM
+- Build a consent manifest and provenance record
+- Store locally first, then replicate to Storacha when configured
+- Anchor the dataset reference on Sepolia
+
+### 3. Govern Access
+
+- Create onchain grants through `ConsentVault`
+- Revoke grants and publish revocations to `RevocationRegistry`
+- Destroy scoped key material when consent is revoked
+
+### 4. Learn Collaboratively
+
+- Train locally on feature vectors
+- Apply differential privacy before sharing gradients
+- Aggregate through the federated coordination layer
+- Track privacy budget and peer participation in the UI
+
+### 5. Infer Reliably
+
+- Query the API for cognitive-state inference
+- Route to Impulse first, then OpenRouter
+- Fall back to a local heuristic model when hosted providers fail
+
+## Fallback Strategy
+
+| Capability | Primary Path | Fallback |
+| --- | --- | --- |
+| EEG input | Muse headset over Web Bluetooth | Local-first session workflows keep the rest of the product usable when hardware is unavailable |
+| Dataset persistence | Storacha via API | Browser local encrypted archive |
+| AI inference | Impulse AI | OpenRouter, then local heuristic |
+| Key access control | Lit envelope | Local encrypted payload retention |
+| Coordination | NEAR / remote coordination config | Local coordination ledger |
+
+This fallback layer is deliberate: judges can still exercise the full product even if external credentials are unavailable.
+
+## Sepolia Deployment
+
+Current committed Sepolia deployment:
 
 | Contract | Address |
 | --- | --- |
@@ -22,69 +194,43 @@ Current public testnet deployment:
 | DataDAO | `0x5f5D961153800c2A4F00876F9D3D79A0723507a3` |
 | BountyPool | `0xAb85d120b59a394770088Eb7c0f8D17F61438451` |
 
-Deployment artifacts are written to:
+Deployment artifacts live in:
 
 - `packages/contracts/deployments.sepolia.json`
 - `packages/contracts/deployments.json`
 
-Seeded onchain state for the deployer wallet:
-
-- 1 anchored dataset record
-- 4 consent grants total
-- 1 governance proposal
-
-The seeded vault and grant history belongs to the deployment wallet. Any new real EEG sessions sealed from the app will belong to the wallet that is currently connected in the browser.
-
-## Workspaces
+## Repository Layout
 
 ```text
 apps/web               React + Vite control plane
-apps/api               Fastify API for Storacha + AI proxying
-packages/contracts     Hardhat + Solidity consent/governance contracts
-docs/                  Architecture, NCD spec, safety notes
+apps/api               Fastify API for AI routing and Storacha uploads
+packages/contracts     Hardhat contracts for consent, revocation, governance, bounties
+docs/                  architecture, safety, and NCD references
 ```
 
-## Core flows
+## Tech Stack
 
-### EEG capture
+- React 18
+- Vite 5
+- TypeScript
+- Zustand
+- Fastify
+- Wagmi + RainbowKit
+- Solidity + Hardhat
+- Sepolia
+- Storacha
+- Lit Protocol SDK
+- TensorFlow.js
+- Recharts
 
-- Web Bluetooth is the primary runtime path.
-- The main UX no longer depends on simulated EEG for the header, onboarding, or vault flow.
-- Feature windows are recorded continuously during a live session and then sealed into encrypted bundles.
-
-### Vault sealing
-
-- Session payloads are encrypted in-browser with AES-GCM.
-- A consent manifest and provenance metadata bundle are created for each sealed session.
-- The app stores the bundle locally by default and can also archive it to Storacha through `apps/api`.
-- The bundle is anchored onchain through `ConsentVault.anchorDataset`.
-
-### Consent lifecycle
-
-- Wallet-connected owners create grants through `ConsentVault.grantAccess`.
-- Revocations are written through `ConsentVault.revokeAccess` and mirrored into `RevocationRegistry`.
-- The vault store hydrates from chain state on app load.
-
-### Governance
-
-- Proposal creation and voting are wired to `DataDAO`.
-- The deployer is bootstrapped as a DAO member so governance works immediately after deploy.
-
-### AI inference
-
-- Frontend inference requests go to `VITE_IMPULSE_PROXY_URL`.
-- The API first attempts Impulse.
-- If Impulse fails or lacks a deployment ID, the API falls back to OpenRouter.
-- The fallback model defaults to `google/gemini-2.5-flash-lite-preview-06-17`.
-
-## Local setup
+## Local Setup
 
 ### Prerequisites
 
 - Node.js 20+
 - npm 10+
-- A Sepolia-funded EVM wallet if you want to write onchain state
-- A Chromium browser with Web Bluetooth support for live EEG capture
+- a Sepolia wallet if you want to exercise contract writes
+- optionally a Muse-compatible headset for live EEG capture
 
 ### Install
 
@@ -93,7 +239,7 @@ npm install
 cp .env.example .env
 ```
 
-### Run the apps
+### Run
 
 Frontend:
 
@@ -113,23 +259,13 @@ Whole workspace:
 npm run dev
 ```
 
-## Environment
+## Environment Variables
 
-The repo uses a root `.env` file for the web app, API service, and Hardhat tooling.
+### Frontend
 
-### Frontend runtime
-
-Required for the live Sepolia deployment:
+The frontend has safe defaults for chain metadata and the committed Sepolia contract addresses. Add these when you want remote services enabled:
 
 ```bash
-VITE_CHAIN_ID=11155111
-VITE_CHAIN_NAME=Ethereum Sepolia
-VITE_RPC_URL=https://rpc.sepolia.org
-VITE_BLOCK_EXPLORER_URL=https://sepolia.etherscan.io
-VITE_CONSENT_VAULT_ADDRESS=0xc634a5CCf4A008B6085a1735024aA443207723A8
-VITE_REVOCATION_REGISTRY_ADDRESS=0x6a2a12F68bb9A121E68765e4631151Cb463c2222
-VITE_DATA_DAO_ADDRESS=0x5f5D961153800c2A4F00876F9D3D79A0723507a3
-VITE_BOUNTY_POOL_ADDRESS=0xAb85d120b59a394770088Eb7c0f8D17F61438451
 VITE_STORAGE_MODE=local
 VITE_STORAGE_API_URL=http://127.0.0.1:4100
 VITE_IPFS_GATEWAY=https://w3s.link/ipfs/
@@ -144,9 +280,7 @@ VITE_IMPULSE_API_URL=https://inference.impulselabs.ai
 VITE_IMPULSE_DEPLOYMENT_ID=
 ```
 
-### API runtime
-
-Storacha is optional. At least one AI backend must be configured if you want remote inference.
+### API
 
 ```bash
 PORT=4100
@@ -163,64 +297,123 @@ OPENROUTER_HTTP_REFERER=http://127.0.0.1:5173
 OPENROUTER_APP_NAME=NeuralCommons
 ```
 
-### Contract deployment runtime
+### Contracts
 
 ```bash
 PRIVATE_KEY=
 SEPOLIA_RPC_URL=https://rpc.sepolia.org
 ALCHEMY_SEPOLIA_API=
 ETHERSCAN_API_KEY=
+BASESCAN_API_KEY=
 ```
 
-## Deployment and seeding
+## Deployment
 
-Deploy the contracts to Sepolia:
+### Contracts
+
+Deploy:
 
 ```bash
 npm run deploy:contracts
 ```
 
-Seed the deployment with bootstrap chain state for the deployer wallet:
+Seed bootstrap state:
 
 ```bash
 npm run seed --workspace=@neuralcommons/contracts -- --network sepolia
 ```
 
-The seed script is idempotent. Once a vault, grant history, and governance proposal already exist, re-running it will skip those writes.
+### API on Render
+
+This repo includes a Render blueprint at `render.yaml`.
+
+Required Render environment variables:
+
+- `STORACHA_KEY`
+- `STORACHA_PROOF`
+- `IMPULSE_API_KEY` and `IMPULSE_DEPLOYMENT_ID` if using Impulse
+- `OPENROUTER_API_KEY` if using OpenRouter fallback
+- `OPENROUTER_HTTP_REFERER` set to your deployed frontend URL
+
+The service health check is `GET /health`.
+
+### Frontend on Vercel
+
+The frontend includes Vercel config at `apps/web/vercel.json`.
+
+Recommended Vercel environment variables:
+
+- `VITE_STORAGE_API_URL`
+- `VITE_IMPULSE_PROXY_URL`
+- `VITE_WALLETCONNECT_PROJECT_ID`
+- `VITE_LIT_NETWORK`
+- `VITE_LIT_CHAIN`
+- optional NEAR coordination vars if you want remote coordination enabled
+
+SPA rewrites are configured so routes like `/vault` and `/governance` resolve correctly in production.
 
 ## Verification
 
-Contract tests:
+Contracts:
 
 ```bash
 npm run test --workspace=@neuralcommons/contracts
 ```
 
-API build:
+API:
 
 ```bash
 npm run build --workspace=@neuralcommons/api
 ```
 
-Frontend build:
+Frontend:
 
 ```bash
 npm run build --workspace=@neuralcommons/web
 ```
 
-Whole workspace build:
+Whole workspace:
 
 ```bash
 npm run build
 ```
 
-## Operational notes
+## Demo Script
 
-- Storacha archival is implemented, but actual replication requires valid delegated Storacha credentials.
-- WalletConnect wallet discovery is wired through RainbowKit, but `VITE_WALLETCONNECT_PROJECT_ID` still needs a real project ID if you want WalletConnect wallets to appear.
-- The AI proxy supports fallback logic, but you still need either a valid Impulse deployment ID or an OpenRouter API key for successful remote inference.
-- Local archive mode is still a real persistence path, not a demo path. It stores encrypted bundles in browser storage until remote archival is configured.
-- NEAR coordination remains optional. Without NEAR settings, coordination remains local while EVM consent and governance stay live on Sepolia.
+Suggested 2-5 minute hackathon demo:
+
+1. Open the dashboard and show the track-alignment cards plus provider health.
+2. Connect a Muse-compatible device and start a short capture.
+3. Record a short session and stop it.
+4. Seal the session into the vault and show encrypted retention.
+5. Grant access, then revoke it to demonstrate programmable consent.
+6. Run cognitive inference and highlight the hosted-to-local fallback path.
+7. Open Federated Learning and show local training, privacy budget, and round anchoring.
+8. Open the Security Lab to show adversarial thinking and safety posture.
+
+## Current State
+
+- frontend and API both build successfully
+- contract tests are passing
+- the API exposes runtime health and heuristic AI fallback
+- the frontend has local-first archival fallback and a healthier federation/runtime setup
+- the frontend uses route-level lazy loading to reduce initial bundle pressure
+
+## Known Limitations
+
+- a real headset is still required for true live biometric capture
+- Storacha replication depends on valid delegated credentials
+- Lit envelopes are implemented as a programmable access path, but full production key ceremony can go deeper
+- the wallet stack is still heavy and could be slimmed further for faster cold starts
+- remote coordination is currently optional and defaults to local mode
+
+## Roadmap After Hackathon
+
+- richer multi-party UCAN/Storacha shared-memory flows
+- stronger Lit-based decrypt authorization for every downstream read path
+- dataset marketplaces and bounty-backed research requests
+- production observability dashboards and audit exports
+- more sophisticated Impulse models trained on broader consented datasets
 
 ## Documentation
 
@@ -228,8 +421,4 @@ npm run build
 - `docs/NCD-SPEC.md`
 - `docs/SAFETY.md`
 
-## Current limits
-
-- Real EEG capture still depends on Muse-compatible hardware and browser Bluetooth support.
-- The seeded Sepolia data is operational bootstrap state, not a personal biometric baseline.
-- The frontend still emits chunk-size warnings because the wallet and analytics vendors remain large; the build is successful, but there is more code-splitting work left if load performance becomes a priority.
+NeuralCommons is designed to show that neurotech can be useful, collaborative, and privacy-preserving without sacrificing deployability.

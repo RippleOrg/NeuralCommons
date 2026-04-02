@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Brain, Bluetooth, Zap } from 'lucide-react';
+import { Brain, Bluetooth } from 'lucide-react';
 import { useEEG } from '../../hooks/useEEG';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
@@ -57,27 +57,16 @@ export const EEGConnector: React.FC = () => {
 
       <div className="flex gap-2">
         {!connected ? (
-          <>
-            <Button
-              variant="primary"
-              onClick={handleConnect}
-              loading={connecting}
-              disabled={connecting}
-              aria-label="Connect EEG device via Bluetooth"
-            >
-              <Bluetooth size={12} className="mr-1" />
-              Connect Muse 2
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={handleConnect}
-              loading={connecting}
-              aria-label="Start EEG simulation"
-            >
-              <Zap size={12} className="mr-1" />
-              Simulate
-            </Button>
-          </>
+          <Button
+            variant="primary"
+            onClick={handleConnect}
+            loading={connecting}
+            disabled={connecting}
+            aria-label="Connect EEG device via Bluetooth"
+          >
+            <Bluetooth size={12} className="mr-1" />
+            Connect Muse 2
+          </Button>
         ) : (
           <Button
             variant="danger"
